@@ -261,7 +261,7 @@ export function MerchantHomePage(): ReactElement {
           <a href="#mcp">MCP readiness</a>
         </nav>
         <div className="header-actions">
-          <a href="#testbed">Open storefront</a>
+          <a href="#testbed">View environment</a>
         </div>
       </header>
 
@@ -330,9 +330,12 @@ export function MerchantHomePage(): ReactElement {
       </section>
 
       <section id="testbed" className="simulation-workspace">
-        <div className="section-heading">
-          <p className="eyebrow">Merchant website under test</p>
-          <h2>RidgeRun retail surface</h2>
+        <div className="section-heading environment-heading">
+          <div>
+            <p className="eyebrow">Embedded test environment</p>
+            <h2>RidgeRun running inside MerchantOS</h2>
+          </div>
+          <span>isolated browser viewport</span>
         </div>
         {session !== null && cart !== null ? (
           <div className="kernel-embed-frame">
