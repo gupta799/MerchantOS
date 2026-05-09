@@ -233,6 +233,12 @@ button {
   font-size: 32px;
 }
 
+.map-header strong.pending-score {
+  border: 1px solid #d8d8d2;
+  background: #f7f7f4;
+  color: #77776f;
+}
+
 .map-stage {
   display: grid;
   grid-template-columns: 42px minmax(0, 1fr);

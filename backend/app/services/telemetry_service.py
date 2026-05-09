@@ -25,7 +25,7 @@ class TelemetryService:
         return AgentReadinessReport(
             simulation_id=simulation_id,
             readiness_score=score,
-            summary=self.summary_for(score, failures),
+            summary=self.summary_for(score, failures, metrics),
             metrics=metrics,
             failures=failures,
             recommendations=self.recommendations_for(failures),
@@ -150,7 +150,7 @@ class TelemetryService:
             if entry.verification.status == VerificationStatus.BLOCKED
         ]
         action_total = len(action_entries)
-        action_success_rate = 100.0 if action_total == 0 else round(len(successful_actions) / action_total * 100, 1)
+        action_success_rate = 0.0 if action_total == 0 else round(len(successful_actions) / action_total * 100, 1)
         cart = self._store.get_cart(session_id)
         task_completion_rate = 100.0 if len(cart.items) > 0 else 0.0
         no_op_click_count = float(
@@ -267,7 +267,10 @@ class TelemetryService:
         penalty = 8 * len([label for label in failures if label not in {FailureLabel.TASK_COMPLETED}])
         return max(0, min(100, round(base_score - penalty)))
 
-    def summary_for(self, score: int, failures: list[FailureLabel]) -> str:
+    def summary_for(self, score: int, failures: list[FailureLabel], metrics: list[TelemetryMetric]) -> str:
+        metric_values = {metric.key: metric.value for metric in metrics}
+        if metric_values["actions_to_completion"] == 0 and FailureLabel.TASK_COMPLETED not in failures:
+            return "Run the CUA simulation to calculate readiness from observed actions and verification results."
         if FailureLabel.TASK_COMPLETED in failures:
             return "The autonomous CUA simulation completed the core cart task and produced replayable telemetry."
         if score >= 70:

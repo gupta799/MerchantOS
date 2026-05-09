@@ -42,8 +42,13 @@ def test_simulation_service_creates_run_with_report() -> None:
     assert run.simulation_id.startswith("sim_")
     assert run.session_id.startswith("sess_")
     assert run.status == SimulationStatus.CONNECTING
-    assert run.report.readiness_score >= 0
+    assert run.report.readiness_score == 0
+    assert run.report.summary.startswith("Run the CUA simulation")
     assert run.scenario.title == "Autonomous commerce readiness probe"
+
+    telemetry = service.telemetry_response(run.simulation_id)
+    metric_values = {metric.key: metric.value for metric in telemetry.metrics}
+    assert metric_values["action_success_rate"] == 0
 
 
 def test_simulation_telemetry_aggregates_trace_entries() -> None:

@@ -105,6 +105,10 @@ export function MerchantHomePage(): ReactElement {
     setSelectedVariantId(nextSession.recommended_products[0]?.variant_id ?? null);
   }
 
+  function handleRefreshError(): void {
+    setStatusMessage("Waiting for backend telemetry. Rerun the simulation if the backend was restarted.");
+  }
+
   async function createAndRunSimulation(shouldStartRun = true): Promise<void> {
     clientRef.current?.disconnect();
     clientRef.current = null;
@@ -174,7 +178,7 @@ export function MerchantHomePage(): ReactElement {
     if (guideStart.status !== "running") {
       setStatusMessage(guideStart.message);
     }
-    await refreshSimulation(simulationId);
+    await refreshSimulation(simulationId).catch(handleRefreshError);
   }
 
   async function runDemoSimulation(): Promise<void> {
@@ -230,10 +234,10 @@ export function MerchantHomePage(): ReactElement {
     const client = new AgentReadyClient(session.session_id, testbedRef.current, {
       onReady: () => void startAutonomousRun(session.session_id, simulation.simulation_id),
       onAssistantUpdate: setStatusMessage,
-      onTraceUpdate: () => void refreshSimulation(simulation.simulation_id),
+      onTraceUpdate: () => void refreshSimulation(simulation.simulation_id).catch(handleRefreshError),
       onDone: (message) => {
         setStatusMessage(message);
-        void refreshSimulation(simulation.simulation_id);
+        void refreshSimulation(simulation.simulation_id).catch(handleRefreshError);
       },
       onError: setStatusMessage
     });
@@ -253,7 +257,7 @@ export function MerchantHomePage(): ReactElement {
       return;
     }
     const timer = window.setInterval(() => {
-      void refreshSimulation(simulation.simulation_id);
+      void refreshSimulation(simulation.simulation_id).catch(handleRefreshError);
     }, 1500);
     return () => window.clearInterval(timer);
   }, [simulation?.simulation_id, simulation?.status]);
@@ -355,6 +359,17 @@ export function MerchantHomePage(): ReactElement {
       return;
     }
     setTelemetryOpen(true);
+    const targetRun =
+      analysisTarget === "current"
+        ? simulation
+        : simulationOptions.find((option) => option.simulation_id === analysisTarget) ?? null;
+    if (
+      targetRun === null ||
+      (targetRun.status !== "completed" && targetRun.status !== "failed")
+    ) {
+      setAnalysisStatus("Run the simulation first. Telemetry summaries are available after completion.");
+      return;
+    }
     setAnalysisStatus("Summarizing this simulation...");
     try {
       const summary = await summarizeTelemetry({ simulation_id: targetId });
@@ -379,7 +394,25 @@ export function MerchantHomePage(): ReactElement {
 
   const actionTraceCount = traceEntries.filter((entry) => entry.action !== null && entry.action !== undefined).length;
   const failureCount = telemetry?.failures.filter((failure) => failure !== "task_completed").length ?? 0;
+  const runHasFinalScore = simulation?.status === "completed" || simulation?.status === "failed";
   const readinessScore = simulation?.report.readiness_score ?? 0;
+  const readinessDisplay = runHasFinalScore ? `${readinessScore}` : "--";
+  const riskDisplay = runHasFinalScore ? `${failureCount}` : "--";
+  const readinessSummary = runHasFinalScore
+    ? simulation?.report.summary ?? "Simulation finished without a readiness summary."
+    : "Readiness appears after the computer-use simulation finishes. The pre-run testbed is not scored.";
+  const visibleFailureLabels = runHasFinalScore ? telemetry?.failures ?? [] : [];
+  const selectedAnalysisRun =
+    analysisTarget === "current"
+      ? simulation
+      : simulationOptions.find((option) => option.simulation_id === analysisTarget) ?? null;
+  const canAnalyzeSelection =
+    selectedAnalysisRun !== null &&
+    (selectedAnalysisRun.status === "completed" || selectedAnalysisRun.status === "failed");
+  const visibleAnalysisStatus = canAnalyzeSelection ? analysisStatus : null;
+  const analysisPlaceholder = canAnalyzeSelection
+    ? "Use the summary controls to generate a concise telemetry readout."
+    : "Telemetry summaries unlock after the computer-use run finishes.";
 
   return (
     <main className="home-page lab-page">
@@ -416,8 +449,8 @@ export function MerchantHomePage(): ReactElement {
         </div>
         <aside className="simulation-map" aria-label="Run status">
           <div className="map-header">
-            <span>Readiness score</span>
-            <strong>{simulation?.report.readiness_score ?? 0}</strong>
+            <span>{runHasFinalScore ? "Readiness score" : "Readiness pending"}</span>
+            <strong className={runHasFinalScore ? undefined : "pending-score"}>{readinessDisplay}</strong>
           </div>
           <div className="map-stage active">
             <span>1</span>
@@ -436,8 +469,8 @@ export function MerchantHomePage(): ReactElement {
           <div className="map-stage">
             <span>3</span>
             <div>
-              <strong>Harness result</strong>
-              <p>{simulation?.report.summary ?? "Waiting for the first telemetry sample."}</p>
+              <strong>{runHasFinalScore ? "Harness result" : "Harness result pending"}</strong>
+              <p>{readinessSummary}</p>
             </div>
           </div>
         </aside>
@@ -487,7 +520,7 @@ export function MerchantHomePage(): ReactElement {
         <div className="telemetry-console-grid">
           <div>
             <span>Readiness</span>
-            <strong>{readinessScore}</strong>
+            <strong>{readinessDisplay}</strong>
           </div>
           <div>
             <span>Traces</span>
@@ -499,11 +532,11 @@ export function MerchantHomePage(): ReactElement {
           </div>
           <div>
             <span>Risks</span>
-            <strong>{failureCount}</strong>
+            <strong>{riskDisplay}</strong>
           </div>
         </div>
         <p className="telemetry-console-summary">
-          {simulation?.report.summary ?? "Start a CUA run to stream observations, actions, and verification events."}
+          {readinessSummary}
         </p>
         <section className="console-mcp-panel" aria-label="MCP readiness recommendations">
           <div className="console-subhead">
@@ -538,7 +571,7 @@ export function MerchantHomePage(): ReactElement {
             type="button"
             className="primary-action"
             onClick={() => void analyzeTelemetry()}
-            disabled={analysisStreaming || (analysisTarget === "current" && simulation === null)}
+            disabled={analysisStreaming || !canAnalyzeSelection}
           >
             {analysisStreaming ? "Analyzing..." : "Analyze"}
           </button>
@@ -546,9 +579,9 @@ export function MerchantHomePage(): ReactElement {
             All runs
           </button>
         </div>
-        {analysisStatus !== null ? <p className="analysis-status">{analysisStatus}</p> : null}
-        {analysisMarkdown.length > 0 ? renderMarkdown(analysisMarkdown) : (
-          <p className="analysis-placeholder">Use the summary controls to generate a concise telemetry readout.</p>
+        {visibleAnalysisStatus !== null ? <p className="analysis-status">{visibleAnalysisStatus}</p> : null}
+        {analysisMarkdown.length > 0 && canAnalyzeSelection ? renderMarkdown(analysisMarkdown) : (
+          <p className="analysis-placeholder">{analysisPlaceholder}</p>
         )}
         <div className="telemetry-trace-card">
           <TracePanel entries={traceEntries} />
@@ -645,9 +678,13 @@ export function MerchantHomePage(): ReactElement {
                 <section className="lab-panel compact">
                   <p className="eyebrow">Failure labels</p>
                   <div className="failure-list">
-                    {(telemetry?.failures ?? []).map((failure) => (
-                      <span key={failure}>{failure.replaceAll("_", " ")}</span>
-                    ))}
+                    {visibleFailureLabels.length > 0 ? (
+                      visibleFailureLabels.map((failure) => (
+                        <span key={failure}>{failure.replaceAll("_", " ")}</span>
+                      ))
+                    ) : (
+                      <span>pending run</span>
+                    )}
                   </div>
                 </section>
               </div>
