@@ -4,7 +4,7 @@ import json
 from pathlib import Path
 
 from app.config import AppSettings
-from app.ids import SessionId, new_trace_id
+from app.ids import SessionId, SimulationId, new_trace_id
 from app.models import (
     ActionVerification,
     BrowserObservation,
@@ -23,6 +23,7 @@ class TraceService:
     def __init__(self, store: InMemoryStore, settings: AppSettings | None = None) -> None:
         self._store = store
         self._telemetry = TelemetryService(store)
+        self._settings = settings
         self._telemetry_dir = self._resolve_telemetry_dir(settings)
 
     def record_observation(self, session_id: SessionId, observation: BrowserObservation) -> TraceEntry:
@@ -87,6 +88,7 @@ class TraceService:
         simulation_id = self._store.simulation_id_for_session(entry.session_id)
         if simulation_id is None:
             return
+        self._write_manifest_if_missing(simulation_id, entry.session_id)
         report = self._telemetry.build_report(simulation_id, entry.session_id)
         payload = {
             "timestamp": utc_now().isoformat(),
@@ -99,6 +101,42 @@ class TraceService:
         path = self._telemetry_dir / f"{entry.session_id}.jsonl"
         with path.open("a", encoding="utf-8") as handle:
             handle.write(json.dumps(payload, ensure_ascii=True) + "\n")
+
+    def _write_manifest_if_missing(self, simulation_id: SimulationId, session_id: SessionId) -> None:
+        if self._telemetry_dir is None:
+            return
+        manifest_path = self._telemetry_dir / f"{session_id}.manifest.json"
+        if manifest_path.exists():
+            return
+        simulation = self._store.get_simulation(simulation_id)
+        session = self._store.get_session(session_id)
+        payload = {
+            "simulation_id": simulation.simulation_id,
+            "session_id": session.session_id,
+            "created_at": simulation.created_at.isoformat(),
+            "browser_environment": simulation.browser_environment,
+            "scenario": simulation.scenario.model_dump(mode="json"),
+            "runtime": self._runtime_snapshot(),
+        }
+        self._telemetry_dir.mkdir(parents=True, exist_ok=True)
+        with manifest_path.open("w", encoding="utf-8") as handle:
+            handle.write(json.dumps(payload, ensure_ascii=True, indent=2) + "\n")
+
+    def _runtime_snapshot(self) -> dict[str, str] | None:
+        if self._settings is None:
+            return None
+        return {
+            "harness_mode": self._settings.harness_mode,
+            "harness_model_provider": self._settings.harness_model_provider,
+            "harness_model": self._settings.harness_model,
+            "computer_client_mode": self._settings.computer_client_mode,
+            "computer_model": (
+                self._settings.tzafon_computer_model
+                if self._settings.computer_client_mode == "tzafon"
+                else self._settings.openai_computer_model
+            ),
+            "browser_environment": self._settings.browser_environment,
+        }
 
     def _resolve_telemetry_dir(self, settings: AppSettings | None) -> Path | None:
         if settings is None:
