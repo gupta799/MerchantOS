@@ -1,0 +1,19 @@
+{
+  "simulation_id": "sim_f76a3ae011",
+  "session_id": "sess_2b03662dbb",
+  "created_at": "2026-05-09T20:58:23.116461+00:00",
+  "browser_environment": "local_sdk",
+  "scenario": {
+    "scenario_id": "autonomous_commerce_readiness",
+    "title": "Autonomous commerce readiness probe",
+    "goal": "Behave like a computer-use buying agent. Find a waterproof trail running shoe under $150, identify the 10.5 Wide variant, add it to cart, verify the shipping promise, look for return-policy signals, and stop before checkout or payment."
+  },
+  "runtime": {
+    "harness_mode": "scripted",
+    "harness_model_provider": "llamacpp",
+    "harness_model": "gemma4-e4b-it",
+    "computer_client_mode": "scripted",
+    "computer_model": "gpt-5.5",
+    "browser_environment": "local_sdk"
+  }
+}

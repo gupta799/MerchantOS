@@ -8,4 +8,3 @@ dist/
 coverage/
 test-results/
 playwright-report/
-cache_telemetry/
