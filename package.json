@@ -1,0 +1,21 @@
+{
+  "name": "agentready",
+  "private": true,
+  "scripts": {
+    "install:frontend": "npm install --prefix frontend",
+    "model:gemma4": "bash scripts/run_hf_gemma4_llama_server.sh",
+    "dev:backend": "uv run --project backend uvicorn app.main:app --reload --host 0.0.0.0 --port 8000",
+    "dev:frontend": "npm run dev --prefix frontend",
+    "dev": "concurrently \"npm:dev:backend\" \"npm:dev:frontend\"",
+    "test:backend": "AGENTREADY_HARNESS_MODE=scripted AGENTREADY_COMPUTER_CLIENT=scripted uv run --project backend --extra test pytest backend/tests",
+    "test:frontend": "npm run test --prefix frontend",
+    "test:e2e": "npx playwright test",
+    "test:e2e:gemma4": "npx playwright test --config playwright.gemma4.config.ts",
+    "test:e2e:tzafon": "npx playwright test --config playwright.tzafon.config.ts",
+    "test": "npm run test:backend && npm run test:frontend"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.56.1",
+    "concurrently": "^9.2.1"
+  }
+}

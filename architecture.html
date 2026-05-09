@@ -1,0 +1,313 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>AgentReady Architecture Brief</title>
+    <style>
+      :root {
+        --ink: #17211c;
+        --muted: #66736c;
+        --line: #d8ded8;
+        --panel: #fffdf8;
+        --soft: #f4f6f2;
+        --green: #173d34;
+        --blue: #dcecff;
+        --gold: #fff0c7;
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      body {
+        margin: 0;
+        background: var(--soft);
+        color: var(--ink);
+        font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+        line-height: 1.55;
+      }
+
+      main {
+        max-width: 1180px;
+        margin: 0 auto;
+        padding: 36px 22px 64px;
+      }
+
+      header,
+      section {
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        background: var(--panel);
+      }
+
+      header {
+        display: grid;
+        gap: 18px;
+        padding: clamp(28px, 6vw, 58px);
+      }
+
+      section {
+        margin-top: 18px;
+        padding: clamp(22px, 4vw, 34px);
+      }
+
+      h1,
+      h2,
+      h3,
+      p {
+        margin: 0;
+      }
+
+      h1 {
+        max-width: 900px;
+        font-size: clamp(42px, 8vw, 82px);
+        line-height: 0.98;
+        letter-spacing: 0;
+      }
+
+      h2 {
+        margin-bottom: 16px;
+        font-size: 28px;
+        letter-spacing: 0;
+      }
+
+      .eyebrow {
+        color: var(--green);
+        font-size: 12px;
+        font-weight: 850;
+        letter-spacing: 0.1em;
+        text-transform: uppercase;
+      }
+
+      .lead {
+        max-width: 860px;
+        color: #3f4a44;
+        font-size: 18px;
+      }
+
+      .statement {
+        border-left: 4px solid var(--green);
+        border-radius: 6px;
+        padding: 16px;
+        background: #edf7ef;
+        font-weight: 800;
+      }
+
+      .diagram {
+        display: grid;
+        grid-template-columns: repeat(6, minmax(145px, 1fr));
+        gap: 12px;
+        overflow-x: auto;
+        padding-bottom: 4px;
+      }
+
+      .node {
+        position: relative;
+        min-height: 126px;
+        display: grid;
+        align-content: center;
+        gap: 6px;
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        padding: 14px;
+        background: #fff;
+      }
+
+      .node::after {
+        content: "->";
+        position: absolute;
+        right: -13px;
+        top: 50%;
+        transform: translateY(-50%);
+        color: var(--muted);
+        font-weight: 900;
+      }
+
+      .node:last-child::after {
+        content: "";
+      }
+
+      .node strong {
+        font-size: 15px;
+      }
+
+      .node span {
+        color: var(--muted);
+        font-size: 13px;
+      }
+
+      .flow {
+        display: grid;
+        gap: 10px;
+      }
+
+      .row {
+        display: grid;
+        grid-template-columns: 52px minmax(180px, 0.9fr) minmax(280px, 1.5fr) minmax(220px, 1fr);
+        gap: 10px;
+      }
+
+      .cell {
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        padding: 12px;
+        background: #fff;
+      }
+
+      .num {
+        display: grid;
+        place-items: center;
+        background: var(--green);
+        color: #fff;
+        font-weight: 900;
+      }
+
+      .service {
+        background: #edf7ef;
+      }
+
+      .output {
+        background: var(--gold);
+      }
+
+      .grid {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 14px;
+      }
+
+      .card {
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        padding: 16px;
+        background: #fff;
+      }
+
+      .card p,
+      .cell span {
+        color: var(--muted);
+      }
+
+      code {
+        border-radius: 6px;
+        padding: 2px 5px;
+        background: #eef2ed;
+        color: #173d34;
+      }
+
+      @media (max-width: 860px) {
+        .row,
+        .grid {
+          grid-template-columns: 1fr;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <main>
+      <header>
+        <p class="eyebrow">AgentReady</p>
+        <h1>Automated computer-use telemetry for agent-ready commerce</h1>
+        <p class="lead">
+          AgentReady runs autonomous computer-use simulations against merchant sites, records every
+          observation/action/state transition, and produces telemetry that helps merchants make
+          their websites MCP-ready and computer-use reliable.
+        </p>
+        <p class="statement">
+          This is not a customer shopping assistant. It is a synthetic CUA lab for merchants.
+        </p>
+      </header>
+
+      <section>
+        <h2>Architecture Diagram</h2>
+        <div class="diagram" aria-label="AgentReady system diagram">
+          <div class="node">
+            <strong>Merchant OS Dashboard</strong>
+            <span>Auto-starts simulation and renders telemetry.</span>
+          </div>
+          <div class="node">
+            <strong>Simulation API</strong>
+            <span><code>POST /api/simulations</code> creates a typed run.</span>
+          </div>
+          <div class="node">
+            <strong>DeepAgents Harness</strong>
+            <span>Gemma/OpenAI planner defines the autonomous task.</span>
+          </div>
+          <div class="node">
+            <strong>Computer-Use Provider</strong>
+            <span>Scripted, Tzafon, or OpenAI proposes visual actions.</span>
+          </div>
+          <div class="node">
+            <strong>Browser SDK</strong>
+            <span>Executes approved actions in the simulated merchant environment.</span>
+          </div>
+          <div class="node">
+            <strong>Telemetry Store</strong>
+            <span>Traces, metrics, failures, and MCP recommendations.</span>
+          </div>
+        </div>
+      </section>
+
+      <section>
+        <h2>Automated Flow</h2>
+        <div class="flow">
+          <div class="row">
+            <div class="cell num">1</div>
+            <div class="cell service"><strong>Dashboard</strong><span>Merchant opens AgentReady Lab.</span></div>
+            <div class="cell">Frontend automatically creates a simulation run.</div>
+            <div class="cell output">Run status: <code>connecting</code></div>
+          </div>
+          <div class="row">
+            <div class="cell num">2</div>
+            <div class="cell service"><strong>SimulationService</strong><span>Creates scenario and session.</span></div>
+            <div class="cell">Scenario asks the agent to find a product, choose variant, inspect policies, and stop before payment.</div>
+            <div class="cell output">Typed <code>SimulationRun</code></div>
+          </div>
+          <div class="row">
+            <div class="cell num">3</div>
+            <div class="cell service"><strong>Browser SDK</strong><span>Connects via WebSocket.</span></div>
+            <div class="cell">SDK captures screenshot, viewport, visible actions, selected variant, and cart state.</div>
+            <div class="cell output">Replayable observation</div>
+          </div>
+          <div class="row">
+            <div class="cell num">4</div>
+            <div class="cell service"><strong>GuideService</strong><span>Runs autonomous CUA loop.</span></div>
+            <div class="cell">Harness sends the current goal and observation to the computer-use provider.</div>
+            <div class="cell output">Click/type/scroll/wait action</div>
+          </div>
+          <div class="row">
+            <div class="cell num">5</div>
+            <div class="cell service"><strong>Policy + SDK</strong><span>Validate, execute, verify.</span></div>
+            <div class="cell">Unsafe actions are blocked. Approved actions execute inside the merchant safe root.</div>
+            <div class="cell output">Action result + new state</div>
+          </div>
+          <div class="row">
+            <div class="cell num">6</div>
+            <div class="cell service"><strong>Telemetry</strong><span>Classify and summarize.</span></div>
+            <div class="cell">Backend computes completion, action success, no-op clicks, loops, missing affordances, and MCP readiness.</div>
+            <div class="cell output">Merchant dashboard</div>
+          </div>
+        </div>
+      </section>
+
+      <section>
+        <h2>Merchant Outputs</h2>
+        <div class="grid">
+          <div class="card">
+            <h3>Telemetry Dashboard</h3>
+            <p>Task completion, action success, loop count, DOM action coverage, screenshot confidence, and blocked actions.</p>
+          </div>
+          <div class="card">
+            <h3>Computer-Use Trace</h3>
+            <p>Every observation, proposed action, browser result, and verification is stored for replay/debugging.</p>
+          </div>
+          <div class="card">
+            <h3>MCP Readiness</h3>
+            <p>Recommended MCP tools/resources such as <code>catalog.search</code>, <code>product://{id}</code>, and <code>cart.prepare</code>.</p>
+          </div>
+        </div>
+      </section>
+    </main>
+  </body>
+</html>
