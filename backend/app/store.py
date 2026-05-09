@@ -103,6 +103,9 @@ class InMemoryStore:
         self.simulations[simulation.simulation_id] = updated
         return updated
 
+    def list_simulations(self) -> list[SimulationRun]:
+        return list(self.simulations.values())
+
     def simulation_id_for_session(self, session_id: SessionId) -> SimulationId | None:
         return self.simulation_ids_by_session.get(session_id)
 

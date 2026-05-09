@@ -1,7 +1,15 @@
 from __future__ import annotations
 
 from app.ids import SessionId, SimulationId
-from app.models import AgentReadinessReport, FailureLabel, TelemetryMetric, TraceEntry, VerificationStatus
+from app.models import (
+    AgentReadinessReport,
+    FailureLabel,
+    TelemetryMetric,
+    TelemetrySummaryAllResponse,
+    TelemetrySummaryResponse,
+    TraceEntry,
+    VerificationStatus,
+)
 from app.store import InMemoryStore
 
 
@@ -21,6 +29,111 @@ class TelemetryService:
             metrics=metrics,
             failures=failures,
             recommendations=self.recommendations_for(failures),
+        )
+
+    def summarize_simulation(self, simulation_id: SimulationId) -> TelemetrySummaryResponse:
+        simulation = self._store.get_simulation(simulation_id)
+        session = self._store.get_session(simulation.session_id)
+        traces = self._store.traces_for_session(simulation.session_id)
+        report = self.build_report(simulation_id, simulation.session_id)
+        metrics = {metric.key: metric for metric in report.metrics}
+        action_entries = [entry for entry in traces if entry.action is not None]
+        last_action = action_entries[-1] if action_entries else None
+        last_action_label = "observation"
+        if last_action is not None and last_action.action is not None:
+            last_action_label = f"{last_action.action.type} · {last_action.action.reason}"
+
+        lines = [
+            "# Telemetry analysis",
+            "",
+            f"**Simulation:** {simulation.simulation_id}",
+            f"**Session:** {session.session_id}",
+            f"**Scenario:** {simulation.scenario.title}",
+            f"**Goal:** {simulation.current_goal}",
+            "",
+            "## Highlights",
+            f"- Readiness score: **{report.readiness_score}**",
+            f"- Task completion: **{metrics['task_completion_rate'].value}%**",
+            f"- Action success rate: **{metrics['action_success_rate'].value}%**",
+            f"- DOM action coverage: **{metrics['dom_action_coverage'].value}%**",
+            f"- Screenshot confidence: **{metrics['screenshot_state_confidence'].value}%**",
+            "",
+            "## Issues and risks",
+        ]
+
+        if len(report.failures) == 0:
+            lines.append("- No failure labels detected in this run.")
+        else:
+            for failure in report.failures:
+                lines.append(f"- {self._failure_label_text(failure)}")
+
+        lines.extend(
+            [
+                "",
+                "## Evidence",
+                f"- Trace entries: **{len(traces)}**",
+                f"- Actions executed: **{len(action_entries)}**",
+                f"- Actions to completion: **{metrics['actions_to_completion'].value}**",
+                f"- Last observed action: **{last_action_label}**",
+                "",
+                "## Recommendations",
+            ]
+        )
+        for recommendation in report.recommendations:
+            lines.append(f"- {recommendation}")
+
+        lines.extend(
+            [
+                "",
+                "## Merchant-ready signals",
+                "- High DOM action coverage suggests strong data-agent affordances.",
+                "- Screenshot confidence indicates replayable evidence for audits.",
+                "- Readiness score combines completion, reliability, and safety indicators.",
+            ]
+        )
+
+        return TelemetrySummaryResponse(
+            simulation_id=simulation_id,
+            model="openai:gpt-4.1-mini-mock",
+            markdown="\n".join(lines),
+        )
+
+    def summarize_all_simulations(self) -> TelemetrySummaryAllResponse:
+        simulations = list(self._store.simulations.values())
+        if len(simulations) == 0:
+            return TelemetrySummaryAllResponse(
+                simulation_ids=[],
+                model="openai:gpt-4.1-mini-mock",
+                markdown="# Telemetry analysis\n\nNo simulations available yet.",
+            )
+        summaries = [self.summarize_simulation(sim.simulation_id) for sim in simulations]
+        scores = [self._store.get_simulation(summary.simulation_id).report.readiness_score for summary in summaries]
+        average_score = round(sum(scores) / len(scores)) if len(scores) > 0 else 0
+        latest = max(simulations, key=lambda sim: sim.created_at)
+        lines = [
+            "# Telemetry analysis (all simulations)",
+            "",
+            f"**Total runs:** {len(simulations)}",
+            f"**Average readiness score:** {average_score}",
+            f"**Latest run:** {latest.simulation_id}",
+            "",
+            "## Success signals",
+            "- Readiness scores show how reliably agents complete the cart task.",
+            "- High DOM action coverage indicates strong data-agent affordances.",
+            "- Screenshot confidence confirms replayable evidence for audits.",
+            "",
+            "## Risk signals",
+            "- Loop detections and no-op clicks indicate missing state feedback.",
+            "- Unsafe action blocks highlight merchant policy safeguards at work.",
+            "",
+            "## Recommendations",
+            "- Prioritize runs with low readiness scores for UI affordance improvements.",
+            "- Add MCP tools/resources for the highest-friction steps.",
+        ]
+        return TelemetrySummaryAllResponse(
+            simulation_ids=[sim.simulation_id for sim in simulations],
+            model="openai:gpt-4.1-mini-mock",
+            markdown="\n".join(lines),
         )
 
     def metrics_for(self, session_id: SessionId, traces: list[TraceEntry]) -> list[TelemetryMetric]:
@@ -174,6 +287,20 @@ class TelemetryService:
         if FailureLabel.NO_OP_CLICK in failures:
             recommendations.insert(0, "Add visual or DOM state confirmation after each important interaction.")
         return recommendations
+
+    def _failure_label_text(self, failure: FailureLabel) -> str:
+        mapping = {
+            FailureLabel.NO_VISIBLE_ACTION: "No visible agent actions detected on key screens.",
+            FailureLabel.MISSING_AGENT_ACTION: "Missing agent-readable affordances for primary flows.",
+            FailureLabel.NO_OP_CLICK: "No-op clicks observed; actions did not change state.",
+            FailureLabel.LOOP_DETECTED: "Loop behavior detected; the agent repeated similar actions.",
+            FailureLabel.UNSAFE_ACTION_BLOCKED: "Unsafe actions were blocked by merchant policy.",
+            FailureLabel.TASK_COMPLETED: "Core cart task completed successfully.",
+            FailureLabel.TASK_FAILED: "Task failed to complete within the trace window.",
+            FailureLabel.AMBIGUOUS_SELECTOR: "Ambiguous UI selectors caused uncertainty.",
+            FailureLabel.MISSING_STRUCTURED_DATA: "Structured data gaps reduced agent reliability.",
+        }
+        return mapping.get(failure, failure.value)
 
     def _loop_count(self, action_entries: list[TraceEntry]) -> int:
         repeated = 0

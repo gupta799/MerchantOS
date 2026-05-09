@@ -12,6 +12,7 @@ from app.models import (
     McpRecommendationKind,
     SessionStatus,
     SimulationCreateRequest,
+    SimulationListResponse,
     SimulationRun,
     SimulationScenario,
     SimulationStatus,
@@ -73,6 +74,11 @@ class SimulationService:
         report = self._build_report(simulation_id, existing.session_id)
         updated = existing.model_copy(update={"status": status, "report": report})
         return self._store.update_simulation(updated)
+
+    def list_simulations(self) -> SimulationListResponse:
+        simulations = [self.get_simulation(sim.simulation_id) for sim in self._store.list_simulations()]
+        simulations.sort(key=lambda sim: sim.created_at, reverse=True)
+        return SimulationListResponse(simulations=simulations)
 
     def mark_running(self, simulation_id: SimulationId) -> SimulationRun:
         existing = self._store.get_simulation(simulation_id)

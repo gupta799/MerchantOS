@@ -22,8 +22,12 @@ from app.models import (
     RuntimeResponse,
     SessionResponse,
     SimulationCreateRequest,
+    SimulationListResponse,
     SimulationRun,
     SimulationTelemetryResponse,
+    TelemetrySummaryRequest,
+    TelemetrySummaryResponse,
+    TelemetrySummaryAllResponse,
     TelemetryExportBundle,
     TraceResponse,
 )
@@ -37,6 +41,7 @@ from app.services.guide_service import GuideService
 from app.services.intent_service import IntentService
 from app.services.session_service import SessionService
 from app.services.simulation_service import SimulationService
+from app.services.telemetry_service import TelemetryService
 from app.services.trace_service import TraceService
 from app.store import store
 
@@ -65,6 +70,10 @@ def _trace_service() -> TraceService:
 
 def _simulation_service() -> SimulationService:
     return SimulationService(store, get_settings())
+
+
+def _telemetry_service() -> TelemetryService:
+    return TelemetryService(store)
 
 
 def _guide_service() -> GuideService:
@@ -119,6 +128,11 @@ async def create_simulation(request: SimulationCreateRequest) -> SimulationRun:
     return simulation
 
 
+@router.get("/api/simulations", response_model=SimulationListResponse)
+async def list_simulations() -> SimulationListResponse:
+    return _simulation_service().list_simulations()
+
+
 @router.get("/api/simulations/{simulation_id}", response_model=SimulationRun)
 async def get_simulation(simulation_id: SimulationId) -> SimulationRun:
     return _simulation_service().get_simulation(simulation_id)
@@ -142,6 +156,16 @@ async def get_simulation_mcp_readiness(simulation_id: SimulationId) -> McpReadin
 @router.get("/api/simulations/{simulation_id}/export", response_model=TelemetryExportBundle)
 async def export_simulation(simulation_id: SimulationId) -> TelemetryExportBundle:
     return _simulation_service().export_bundle(simulation_id)
+
+
+@router.post("/api/summarize", response_model=TelemetrySummaryResponse)
+async def summarize_telemetry(request: TelemetrySummaryRequest) -> TelemetrySummaryResponse:
+    return _telemetry_service().summarize_simulation(request.simulation_id)
+
+
+@router.post("/api/summarize-all", response_model=TelemetrySummaryAllResponse)
+async def summarize_all_telemetry() -> TelemetrySummaryAllResponse:
+    return _telemetry_service().summarize_all_simulations()
 
 
 @router.get("/api/sessions/{session_id}", response_model=SessionResponse)

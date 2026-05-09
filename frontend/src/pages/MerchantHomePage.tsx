@@ -8,7 +8,10 @@ import {
   getSimulation,
   getSimulationTelemetry,
   getSimulationTrace,
-  postCustomerMessage
+  listSimulations,
+  postCustomerMessage,
+  summarizeAllTelemetry,
+  summarizeTelemetry
 } from "../api/http";
 import type {
   Cart,
@@ -76,6 +79,7 @@ export function MerchantHomePage(): ReactElement {
   const createdRef = useRef(false);
   const startedSessionRef = useRef("");
   const [simulation, setSimulation] = useState<SimulationRun | null>(null);
+  const [simulationOptions, setSimulationOptions] = useState<SimulationRun[]>([]);
   const [session, setSession] = useState<SessionResponse | null>(null);
   const [runtime, setRuntime] = useState<RuntimeResponse | null>(null);
   const [cart, setCart] = useState<Cart | null>(null);
@@ -85,6 +89,11 @@ export function MerchantHomePage(): ReactElement {
   const [mcpReadiness, setMcpReadiness] = useState<McpReadinessResponse | null>(null);
   const [statusMessage, setStatusMessage] = useState("Preparing automated computer-use simulation...");
   const [rerunning, setRerunning] = useState(false);
+  const [analysisMarkdown, setAnalysisMarkdown] = useState("");
+  const [analysisStatus, setAnalysisStatus] = useState<string | null>(null);
+  const [analysisStreaming, setAnalysisStreaming] = useState(false);
+  const [analysisTarget, setAnalysisTarget] = useState("current");
+  const analysisTimerRef = useRef<number | null>(null);
 
   const featuredMetrics = useMemo(
     () =>
@@ -95,16 +104,18 @@ export function MerchantHomePage(): ReactElement {
   );
 
   async function refreshSimulation(simulationId: string): Promise<void> {
-    const [nextSimulation, nextTrace, nextTelemetry, nextMcp] = await Promise.all([
+    const [nextSimulation, nextTrace, nextTelemetry, nextMcp, nextList] = await Promise.all([
       getSimulation(simulationId),
       getSimulationTrace(simulationId),
       getSimulationTelemetry(simulationId),
-      getMcpReadiness(simulationId)
+      getMcpReadiness(simulationId),
+      listSimulations().catch(() => ({ simulations: [] }))
     ]);
     setSimulation(nextSimulation);
     setTraceEntries(nextTrace.entries);
     setTelemetry(nextTelemetry);
     setMcpReadiness(nextMcp);
+    setSimulationOptions(nextList.simulations);
     const nextSession = await getSession(nextSimulation.session_id);
     setSession(nextSession);
     setCart(nextSession.cart);
@@ -121,11 +132,12 @@ export function MerchantHomePage(): ReactElement {
     setMcpReadiness(null);
     setStatusMessage("Creating automated CUA simulation run...");
     const nextSimulation = await createSimulation(simulationRequest);
-    const [nextRuntime, nextSession, nextTelemetry, nextMcp] = await Promise.all([
+    const [nextRuntime, nextSession, nextTelemetry, nextMcp, nextList] = await Promise.all([
       getRuntime().catch(() => null),
       getSession(nextSimulation.session_id),
       getSimulationTelemetry(nextSimulation.simulation_id),
-      getMcpReadiness(nextSimulation.simulation_id)
+      getMcpReadiness(nextSimulation.simulation_id),
+      listSimulations().catch(() => ({ simulations: [] }))
     ]);
     setRuntime(nextRuntime);
     setSimulation(nextSimulation);
@@ -133,6 +145,8 @@ export function MerchantHomePage(): ReactElement {
     setCart(nextSession.cart);
     setTelemetry(nextTelemetry);
     setMcpReadiness(nextMcp);
+    setSimulationOptions(nextList.simulations);
+    setAnalysisTarget("current");
     setSelectedVariantId(nextSession.recommended_products[0]?.variant_id ?? null);
     const browserEnvironment = nextRuntime?.browser_environment ?? nextSimulation.browser_environment;
     setStatusMessage(
@@ -206,6 +220,14 @@ export function MerchantHomePage(): ReactElement {
   }, [session?.session_id, simulation?.simulation_id]);
 
   useEffect(() => {
+    return () => {
+      if (analysisTimerRef.current !== null) {
+        window.clearInterval(analysisTimerRef.current);
+      }
+    };
+  }, []);
+
+  useEffect(() => {
     if (simulation === null) {
       return;
     }
@@ -227,6 +249,134 @@ export function MerchantHomePage(): ReactElement {
       return;
     }
     setCart(addCartItem(cart, session.products, productId, variantId));
+  }
+
+  function renderInlineMarkdown(text: string): ReactElement[] {
+    const tokens = text.split(/(\*\*[^*]+\*\*)/g).filter((token) => token.length > 0);
+    return tokens.map((token, index) => {
+      if (token.startsWith("**") && token.endsWith("**")) {
+        return <strong key={`strong-${index}`}>{token.slice(2, -2)}</strong>;
+      }
+      return <span key={`text-${index}`}>{token}</span>;
+    });
+  }
+
+  function renderMarkdown(markdown: string): ReactElement {
+    const lines = markdown.split("\n");
+    const elements: ReactElement[] = [];
+    let listItems: string[] = [];
+
+    const flushList = (): void => {
+      if (listItems.length === 0) {
+        return;
+      }
+      elements.push(
+        <ul key={`list-${elements.length}`}>
+          {listItems.map((item, index) => (
+            <li key={`item-${index}`}>{renderInlineMarkdown(item)}</li>
+          ))}
+        </ul>
+      );
+      listItems = [];
+    };
+
+    lines.forEach((line) => {
+      if (line.startsWith("- ")) {
+        listItems.push(line.slice(2));
+        return;
+      }
+      flushList();
+      if (line.startsWith("### ")) {
+        elements.push(<h4 key={`h4-${elements.length}`}>{renderInlineMarkdown(line.slice(4))}</h4>);
+        return;
+      }
+      if (line.startsWith("## ")) {
+        elements.push(<h3 key={`h3-${elements.length}`}>{renderInlineMarkdown(line.slice(3))}</h3>);
+        return;
+      }
+      if (line.startsWith("# ")) {
+        elements.push(<h2 key={`h2-${elements.length}`}>{renderInlineMarkdown(line.slice(2))}</h2>);
+        return;
+      }
+      if (line.trim() === "") {
+        elements.push(<div className="analysis-spacer" key={`spacer-${elements.length}`} />);
+        return;
+      }
+      elements.push(<p key={`p-${elements.length}`}>{renderInlineMarkdown(line)}</p>);
+    });
+
+    flushList();
+    return <div className="analysis-output">{elements}</div>;
+  }
+
+  async function analyzeTelemetry(): Promise<void> {
+    const targetId = analysisTarget === "current" ? simulation?.simulation_id : analysisTarget;
+    if (!targetId) {
+      return;
+    }
+    if (analysisTimerRef.current !== null) {
+      window.clearInterval(analysisTimerRef.current);
+    }
+    setAnalysisMarkdown("");
+    setAnalysisStatus("Analyzing telemetry with OpenAI summary mock...");
+    setAnalysisStreaming(true);
+    try {
+      const summary = await summarizeTelemetry({ simulation_id: targetId });
+      const lines = summary.markdown.split("\n");
+      let index = 0;
+      analysisTimerRef.current = window.setInterval(() => {
+        setAnalysisMarkdown((previous) => {
+          const nextLine = lines[index];
+          const prefix = previous.length === 0 ? "" : "\n";
+          return `${previous}${prefix}${nextLine}`;
+        });
+        index += 1;
+        if (index >= lines.length) {
+          if (analysisTimerRef.current !== null) {
+            window.clearInterval(analysisTimerRef.current);
+          }
+          analysisTimerRef.current = null;
+          setAnalysisStreaming(false);
+          setAnalysisStatus(null);
+        }
+      }, 80);
+    } catch (error) {
+      setAnalysisStreaming(false);
+      setAnalysisStatus("Telemetry analysis failed. Try rerunning the simulation.");
+    }
+  }
+
+  async function analyzeAllTelemetry(): Promise<void> {
+    if (analysisTimerRef.current !== null) {
+      window.clearInterval(analysisTimerRef.current);
+    }
+    setAnalysisMarkdown("");
+    setAnalysisStatus("Summarizing all simulations...");
+    setAnalysisStreaming(true);
+    try {
+      const summary = await summarizeAllTelemetry();
+      const lines = summary.markdown.split("\n");
+      let index = 0;
+      analysisTimerRef.current = window.setInterval(() => {
+        setAnalysisMarkdown((previous) => {
+          const nextLine = lines[index];
+          const prefix = previous.length === 0 ? "" : "\n";
+          return `${previous}${prefix}${nextLine}`;
+        });
+        index += 1;
+        if (index >= lines.length) {
+          if (analysisTimerRef.current !== null) {
+            window.clearInterval(analysisTimerRef.current);
+          }
+          analysisTimerRef.current = null;
+          setAnalysisStreaming(false);
+          setAnalysisStatus(null);
+        }
+      }, 70);
+    } catch (error) {
+      setAnalysisStreaming(false);
+      setAnalysisStatus("All-simulations summary failed. Try again.");
+    }
   }
 
   return (
@@ -291,6 +441,48 @@ export function MerchantHomePage(): ReactElement {
               ) : null}
             </div>
           ) : null}
+        </article>
+
+        <article className="lab-panel wide analysis-panel">
+          <p className="eyebrow">Telemetry analysis</p>
+          <div className="analysis-header">
+            <h2>Agent-ready insights</h2>
+            <div className="analysis-actions">
+              <select
+                className="analysis-select"
+                value={analysisTarget}
+                onChange={(event) => setAnalysisTarget(event.target.value)}
+                disabled={analysisStreaming}
+              >
+                <option value="current">Current simulation</option>
+                {simulationOptions.map((option) => (
+                  <option key={option.simulation_id} value={option.simulation_id}>
+                    {option.simulation_id} · {option.status}
+                  </option>
+                ))}
+              </select>
+              <button
+                type="button"
+                className="primary-action"
+                onClick={() => void analyzeTelemetry()}
+                disabled={analysisStreaming || (analysisTarget === "current" && simulation === null)}
+              >
+                {analysisStreaming ? "Analyzing..." : "Analyze telemetry"}
+              </button>
+              <button
+                type="button"
+                className="secondary-action"
+                onClick={() => void analyzeAllTelemetry()}
+                disabled={analysisStreaming}
+              >
+                Summarize all
+              </button>
+            </div>
+          </div>
+          {analysisStatus !== null ? <p className="analysis-status">{analysisStatus}</p> : null}
+          {analysisMarkdown.length > 0 ? renderMarkdown(analysisMarkdown) : (
+            <p className="analysis-placeholder">Generate a summarized report from the telemetry stream.</p>
+          )}
         </article>
 
         {featuredMetrics.map((metric) => (
