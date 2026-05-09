@@ -145,10 +145,10 @@ Kernel mode:
 ```bash
 AGENTREADY_BROWSER_ENV=kernel
 KERNEL_API_KEY=...
-AGENTREADY_PUBLIC_STOREFRONT_URL=https://public-frontend.example
+AGENTREADY_KERNEL_LOCAL_STOREFRONT_URL=http://localhost:5173
 ```
 
-Kernel cannot open private `127.0.0.1` URLs. Use a deployed URL or a tunnel such as ngrok/Cloudflare Tunnel for the frontend/backend.
+Local Kernel mode uses SSH reverse tunnels from `LOCAL_KERNEL.md`, so the Kernel browser VM can open `http://localhost:5173` and reach the local backend at `http://localhost:8000`. Public URL mode is still supported with `AGENTREADY_PUBLIC_STOREFRONT_URL=https://public-frontend.example`.
 
 ### Layer 4: MerchantOS Telemetry
 
@@ -294,7 +294,7 @@ AGENTREADY_COMPUTER_CLIENT=tzafon
 TZAFON_API_KEY=...
 AGENTREADY_BROWSER_ENV=kernel
 KERNEL_API_KEY=...
-AGENTREADY_PUBLIC_STOREFRONT_URL=https://public-frontend.example
+AGENTREADY_KERNEL_LOCAL_STOREFRONT_URL=http://localhost:5173
 ```
 
 This uses DeepAgents/Gemma, Tzafon, Kernel, and MerchantOS telemetry together.
@@ -313,7 +313,7 @@ Why:
 
 - Reviewers may not have local Gemma running.
 - Tzafon credentials may not be available or may fail.
-- Kernel requires public URLs, not localhost.
+- Kernel local mode requires SSH reverse tunnels; public URL mode remains available for deployed demos.
 - CI should be deterministic and cheap.
 - The core product value is telemetry, verification, replay, and readiness scoring across providers.
 

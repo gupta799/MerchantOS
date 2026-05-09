@@ -15,6 +15,10 @@ DEFAULT_ALLOWED_ORIGIN_FRAGMENTS = (
     "127.0.0.1:5177",
     "localhost:5178",
     "127.0.0.1:5178",
+    "localhost:5180",
+    "127.0.0.1:5180",
+    "localhost:5181",
+    "127.0.0.1:5181",
     "localhost:5173",
     "127.0.0.1:5173",
 )

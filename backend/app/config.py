@@ -35,6 +35,10 @@ class AppSettings(BaseSettings):
         default=None,
         validation_alias="AGENTREADY_PUBLIC_STOREFRONT_URL",
     )
+    kernel_local_storefront_url: str = Field(
+        default="http://localhost:5173",
+        validation_alias="AGENTREADY_KERNEL_LOCAL_STOREFRONT_URL",
+    )
     kernel_viewport_width: int = Field(default=1280, validation_alias="KERNEL_VIEWPORT_WIDTH")
     kernel_viewport_height: int = Field(default=800, validation_alias="KERNEL_VIEWPORT_HEIGHT")
     harness_model_provider_override: HarnessModelProvider | None = Field(
@@ -63,6 +67,10 @@ class AppSettings(BaseSettings):
         "http://127.0.0.1:5177",
         "http://localhost:5178",
         "http://127.0.0.1:5178",
+        "http://localhost:5180",
+        "http://127.0.0.1:5180",
+        "http://localhost:5181",
+        "http://127.0.0.1:5181",
         "http://localhost:5173",
         "http://127.0.0.1:5173",
     )
@@ -103,11 +111,15 @@ class AppSettings(BaseSettings):
         if self.browser_environment == "kernel":
             if self.kernel_api_key is None:
                 raise ConfigError("KERNEL_API_KEY is required when AGENTREADY_BROWSER_ENV=kernel")
-            if self.tzafon_api_key is None:
-                raise ConfigError("TZAFON_API_KEY is required when AGENTREADY_BROWSER_ENV=kernel")
-            if self.kernel_public_storefront_url is None or self.kernel_public_storefront_url.strip() == "":
+            public_storefront_url = (
+                self.kernel_public_storefront_url.strip()
+                if self.kernel_public_storefront_url is not None
+                else ""
+            )
+            if public_storefront_url == "" and self.kernel_local_storefront_url.strip() == "":
                 raise ConfigError(
-                    "AGENTREADY_PUBLIC_STOREFRONT_URL is required when AGENTREADY_BROWSER_ENV=kernel"
+                    "AGENTREADY_KERNEL_LOCAL_STOREFRONT_URL or AGENTREADY_PUBLIC_STOREFRONT_URL "
+                    "is required when AGENTREADY_BROWSER_ENV=kernel"
                 )
 
 

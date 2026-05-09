@@ -83,21 +83,22 @@ def test_kernel_browser_environment_requires_tzafon_key() -> None:
         KERNEL_API_KEY="ker-test",
         TZAFON_API_KEY=None,
         AGENTREADY_BROWSER_ENV="kernel",
-        AGENTREADY_PUBLIC_STOREFRONT_URL="https://merchant.example",
+        AGENTREADY_COMPUTER_CLIENT="tzafon",
     )
     with pytest.raises(ConfigError):
         settings.validate_runtime()
 
 
-def test_kernel_browser_environment_requires_public_storefront_url() -> None:
+def test_kernel_browser_environment_accepts_local_tunnel_target_without_public_url() -> None:
     settings = AppSettings(
         KERNEL_API_KEY="ker-test",
-        TZAFON_API_KEY="tz-test",
         AGENTREADY_BROWSER_ENV="kernel",
         AGENTREADY_PUBLIC_STOREFRONT_URL="",
+        AGENTREADY_KERNEL_LOCAL_STOREFRONT_URL="http://localhost:5173",
+        AGENTREADY_COMPUTER_CLIENT="scripted",
+        AGENTREADY_HARNESS_MODE="scripted",
     )
-    with pytest.raises(ConfigError):
-        settings.validate_runtime()
+    settings.validate_runtime()
 
 
 def test_kernel_browser_environment_accepts_required_keys_without_openai() -> None:
