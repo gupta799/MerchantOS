@@ -25,6 +25,7 @@ def test_runtime_route_returns_active_demo_modes(client: TestClient) -> None:
     assert body["harness_model_provider"] == "llamacpp"
     assert body["harness_model"] == "gemma4-e4b-it"
     assert body["computer_client_mode"] == "scripted"
+    assert body["browser_environment"] == "local_sdk"
     assert body["demo_mode"] is True
 
 
@@ -44,5 +45,6 @@ def test_simulation_routes_return_telemetry_and_mcp_recommendations(client: Test
     assert telemetry.status_code == 200
     assert mcp.status_code == 200
     assert simulation.json()["scenario"]["title"] == "Autonomous commerce readiness probe"
+    assert simulation.json()["browser_environment"] == "local_sdk"
     assert telemetry.json()["metrics"][0]["key"] == "task_completion_rate"
     assert mcp.json()["recommendations"][0]["name"] == "catalog.search"

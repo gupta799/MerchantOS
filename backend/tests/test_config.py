@@ -67,6 +67,52 @@ def test_tzafon_computer_mode_accepts_key_without_openai() -> None:
     settings.validate_runtime()
 
 
+def test_kernel_browser_environment_requires_kernel_key() -> None:
+    settings = AppSettings(
+        KERNEL_API_KEY=None,
+        TZAFON_API_KEY="tz-test",
+        AGENTREADY_BROWSER_ENV="kernel",
+        AGENTREADY_PUBLIC_STOREFRONT_URL="https://merchant.example",
+    )
+    with pytest.raises(ConfigError):
+        settings.validate_runtime()
+
+
+def test_kernel_browser_environment_requires_tzafon_key() -> None:
+    settings = AppSettings(
+        KERNEL_API_KEY="ker-test",
+        TZAFON_API_KEY=None,
+        AGENTREADY_BROWSER_ENV="kernel",
+        AGENTREADY_PUBLIC_STOREFRONT_URL="https://merchant.example",
+    )
+    with pytest.raises(ConfigError):
+        settings.validate_runtime()
+
+
+def test_kernel_browser_environment_requires_public_storefront_url() -> None:
+    settings = AppSettings(
+        KERNEL_API_KEY="ker-test",
+        TZAFON_API_KEY="tz-test",
+        AGENTREADY_BROWSER_ENV="kernel",
+        AGENTREADY_PUBLIC_STOREFRONT_URL="",
+    )
+    with pytest.raises(ConfigError):
+        settings.validate_runtime()
+
+
+def test_kernel_browser_environment_accepts_required_keys_without_openai() -> None:
+    settings = AppSettings(
+        OPENAI_API_KEY=None,
+        KERNEL_API_KEY="ker-test",
+        TZAFON_API_KEY="tz-test",
+        AGENTREADY_BROWSER_ENV="kernel",
+        AGENTREADY_PUBLIC_STOREFRONT_URL="https://merchant.example",
+        AGENTREADY_COMPUTER_CLIENT="tzafon",
+        AGENTREADY_HARNESS_MODE="scripted",
+    )
+    settings.validate_runtime()
+
+
 def test_openai_harness_model_requires_key() -> None:
     settings = AppSettings(
         OPENAI_API_KEY=None,

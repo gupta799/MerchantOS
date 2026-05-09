@@ -640,9 +640,15 @@ button {
 }
 
 .mode-banner span,
+.mode-banner a,
 .demo-note {
   color: #4d5b54;
   font-size: 13px;
+}
+
+.mode-banner a {
+  font-weight: 850;
+  text-decoration: none;
 }
 
 .mode-banner.live {

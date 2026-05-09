@@ -17,10 +17,13 @@ class GuideChannelError(AgentReadyError):
     """Raised when the browser SDK channel is unavailable or invalid."""
 
 
+class BrowserEnvironmentError(AgentReadyError):
+    """Raised when a managed browser environment fails."""
+
+
 class PolicyViolationError(AgentReadyError):
     """Raised when a computer action violates merchant policy."""
 
 
 class UnsupportedComputerActionError(AgentReadyError):
     """Raised when a provider returns an unsupported computer action."""
-

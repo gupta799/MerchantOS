@@ -43,6 +43,37 @@ export TZAFON_COMPUTER_MODEL=tzafon.northstar-cua-fast-1.6
 
 The harness model and computer-use provider are intentionally separate: DeepAgents/Gemma orchestrates the simulation and telemetry interpretation; Tzafon/OpenAI/scripted computer clients perform the visual action loop.
 
+## Kernel + Tzafon Path
+
+The hackathon-native path is:
+
+```text
+DeepAgents/Gemma harness brain
+  -> Tzafon Northstar computer-use action provider
+  -> Kernel cloud browser + Computer Controls API
+  -> MerchantOS trace, telemetry, and MCP readiness dashboard
+```
+
+DeepAgents is still central. Kernel does not replace the harness; it replaces the local browser SDK as the execution environment. Tzafon proposes or accepts the computer-use task, Kernel runs the browser and mouse/keyboard/screenshot controls, and MerchantOS records the run.
+
+To run the Kernel browser environment, expose the frontend and backend publicly with your preferred tunnel/deploy setup, then use a public storefront URL that can load `/agent-session/{session_id}`:
+
+```bash
+export AGENTREADY_BROWSER_ENV=kernel
+export AGENTREADY_PUBLIC_STOREFRONT_URL=https://your-public-frontend.example
+export KERNEL_API_KEY=...
+export AGENTREADY_COMPUTER_CLIENT=tzafon
+export TZAFON_API_KEY=...
+```
+
+You can also use a URL template:
+
+```bash
+export AGENTREADY_PUBLIC_STOREFRONT_URL=https://your-public-frontend.example/agent-session/{session_id}
+```
+
+When a simulation is created in this mode, the backend starts a Kernel browser, opens the merchant storefront session, captures observations through Kernel screenshots plus DOM snapshots, routes the visual task through the configured computer-use provider, executes approved actions through Kernel computer controls, and writes the same telemetry report used by the local demo.
+
 ## Simulation APIs
 
 - `POST /api/simulations`

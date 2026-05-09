@@ -236,11 +236,11 @@
           </div>
           <div class="node">
             <strong>Computer-Use Provider</strong>
-            <span>Scripted, Tzafon, or OpenAI proposes visual actions.</span>
+            <span>Tzafon Northstar, OpenAI, or scripted fallback proposes visual actions.</span>
           </div>
           <div class="node">
-            <strong>Browser SDK</strong>
-            <span>Executes approved actions in the simulated merchant environment.</span>
+            <strong>Browser Environment</strong>
+            <span>Local SDK for demos or Kernel cloud browser for hackathon-native runs.</span>
           </div>
           <div class="node">
             <strong>Telemetry Store</strong>
@@ -266,8 +266,8 @@
           </div>
           <div class="row">
             <div class="cell num">3</div>
-            <div class="cell service"><strong>Browser SDK</strong><span>Connects via WebSocket.</span></div>
-            <div class="cell">SDK captures screenshot, viewport, visible actions, selected variant, and cart state.</div>
+            <div class="cell service"><strong>Browser Environment</strong><span>Local SDK or Kernel session attaches.</span></div>
+            <div class="cell">Local mode captures via WebSocket SDK. Kernel mode launches a cloud browser, opens the storefront session, and captures screenshots plus DOM snapshots.</div>
             <div class="cell output">Replayable observation</div>
           </div>
           <div class="row">
@@ -278,8 +278,8 @@
           </div>
           <div class="row">
             <div class="cell num">5</div>
-            <div class="cell service"><strong>Policy + SDK</strong><span>Validate, execute, verify.</span></div>
-            <div class="cell">Unsafe actions are blocked. Approved actions execute inside the merchant safe root.</div>
+            <div class="cell service"><strong>Policy + Executor</strong><span>Validate, execute, verify.</span></div>
+            <div class="cell">Unsafe actions are blocked. Approved actions execute through the local SDK or Kernel Computer Controls.</div>
             <div class="cell output">Action result + new state</div>
           </div>
           <div class="row">

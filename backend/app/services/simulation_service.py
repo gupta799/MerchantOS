@@ -5,6 +5,7 @@ from app.ids import SessionId, SimulationId, new_simulation_id
 from app.models import (
     AgentIntentRequest,
     AgentReadinessReport,
+    BrowserEnvironment,
     CustomerPreferences,
     FailureLabel,
     McpReadinessRecommendation,
@@ -56,6 +57,7 @@ class SimulationService:
             simulation_id=simulation_id,
             session_id=intent_response.session_id,
             status=SimulationStatus.CONNECTING,
+            browser_environment=BrowserEnvironment(self._settings.browser_environment),
             scenario=scenario,
             current_goal=scenario.goal,
             report=self._build_report(simulation_id, intent_response.session_id),
@@ -67,9 +69,43 @@ class SimulationService:
         existing = self._store.get_simulation(simulation_id)
         session = self._store.get_session(existing.session_id)
         traces = self._store.traces_for_session(existing.session_id)
-        status = self._status_from_session(session.status, traces)
+        status = self._status_from_existing(existing.status, session.status, traces)
         report = self._build_report(simulation_id, existing.session_id)
         updated = existing.model_copy(update={"status": status, "report": report})
+        return self._store.update_simulation(updated)
+
+    def mark_running(self, simulation_id: SimulationId) -> SimulationRun:
+        existing = self._store.get_simulation(simulation_id)
+        updated = existing.model_copy(update={"status": SimulationStatus.RUNNING})
+        return self._store.update_simulation(updated)
+
+    def attach_browser_session(
+        self,
+        simulation_id: SimulationId,
+        browser_session_id: str,
+        browser_live_view_url: str | None,
+    ) -> SimulationRun:
+        existing = self._store.get_simulation(simulation_id)
+        updated = existing.model_copy(
+            update={
+                "browser_session_id": browser_session_id,
+                "browser_live_view_url": browser_live_view_url,
+                "status": SimulationStatus.RUNNING,
+            }
+        )
+        return self._store.update_simulation(updated)
+
+    def mark_completed(self, simulation_id: SimulationId) -> SimulationRun:
+        existing = self._store.get_simulation(simulation_id)
+        report = self._build_report(simulation_id, existing.session_id)
+        updated = existing.model_copy(update={"status": SimulationStatus.COMPLETED, "report": report})
+        return self._store.update_simulation(updated)
+
+    def mark_failed(self, simulation_id: SimulationId, message: str) -> SimulationRun:
+        existing = self._store.get_simulation(simulation_id)
+        report = self._build_report(simulation_id, existing.session_id)
+        failed_report = report.model_copy(update={"summary": message})
+        updated = existing.model_copy(update={"status": SimulationStatus.FAILED, "report": failed_report})
         return self._store.update_simulation(updated)
 
     def trace_response(self, simulation_id: SimulationId) -> TraceResponse:
@@ -131,6 +167,21 @@ class SimulationService:
         if len(traces) > 0:
             return SimulationStatus.RUNNING
         return SimulationStatus.CONNECTING
+
+    def _status_from_existing(
+        self,
+        existing_status: SimulationStatus,
+        session_status: SessionStatus,
+        traces: list[TraceEntry],
+    ) -> SimulationStatus:
+        if existing_status in {SimulationStatus.COMPLETED, SimulationStatus.FAILED}:
+            return existing_status
+        if existing_status == SimulationStatus.RUNNING and session_status not in {
+            SessionStatus.COMPLETED,
+            SessionStatus.FAILED,
+        }:
+            return SimulationStatus.RUNNING
+        return self._status_from_session(session_status, traces)
 
     def _build_report(self, simulation_id: SimulationId, session_id: SessionId) -> AgentReadinessReport:
         traces = self._store.traces_for_session(session_id)

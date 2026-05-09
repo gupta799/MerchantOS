@@ -134,7 +134,12 @@ export function MerchantHomePage(): ReactElement {
     setTelemetry(nextTelemetry);
     setMcpReadiness(nextMcp);
     setSelectedVariantId(nextSession.recommended_products[0]?.variant_id ?? null);
-    setStatusMessage("Browser SDK connected. Autonomous agent run will start automatically.");
+    const browserEnvironment = nextRuntime?.browser_environment ?? nextSimulation.browser_environment;
+    setStatusMessage(
+      browserEnvironment === "kernel"
+        ? "Kernel cloud browser launched. Tzafon computer-use actions will stream into telemetry."
+        : "Browser SDK connected. Autonomous agent run will start automatically."
+    );
     setRerunning(false);
   }
 
@@ -173,7 +178,13 @@ export function MerchantHomePage(): ReactElement {
   }, []);
 
   useEffect(() => {
-    if (testbedRef.current === null || session === null || simulation === null || clientRef.current !== null) {
+    if (
+      testbedRef.current === null ||
+      session === null ||
+      simulation === null ||
+      clientRef.current !== null ||
+      simulation.browser_environment === "kernel"
+    ) {
       return;
     }
     const client = new AgentReadyClient(session.session_id, testbedRef.current, {
@@ -193,6 +204,19 @@ export function MerchantHomePage(): ReactElement {
       clientRef.current = null;
     };
   }, [session?.session_id, simulation?.simulation_id]);
+
+  useEffect(() => {
+    if (simulation === null) {
+      return;
+    }
+    if (simulation.status === "completed" || simulation.status === "failed") {
+      return;
+    }
+    const timer = window.setInterval(() => {
+      void refreshSimulation(simulation.simulation_id);
+    }, 1500);
+    return () => window.clearInterval(timer);
+  }, [simulation?.simulation_id, simulation?.status]);
 
   function selectVariant(variantId: string): void {
     setSelectedVariantId(variantId);
@@ -258,8 +282,13 @@ export function MerchantHomePage(): ReactElement {
               <strong>Harness: {runtime.harness_mode}</strong>
               <span>
                 Model: {runtime.harness_model_provider}/{runtime.harness_model} · Computer use:{" "}
-                {runtime.computer_client_mode}
+                {runtime.computer_client_mode} · Browser: {runtime.browser_environment}
               </span>
+              {simulation?.browser_live_view_url !== null && simulation?.browser_live_view_url !== undefined ? (
+                <a href={simulation.browser_live_view_url} target="_blank" rel="noreferrer">
+                  Open Kernel live view
+                </a>
+              ) : null}
             </div>
           ) : null}
         </article>

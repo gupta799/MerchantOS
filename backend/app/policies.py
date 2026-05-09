@@ -4,7 +4,27 @@ from app.errors import PolicyViolationError
 from app.models import BrowserObservation, ComputerAction, ComputerActionType
 
 
+DEFAULT_ALLOWED_ORIGIN_FRAGMENTS = (
+    "localhost:5174",
+    "127.0.0.1:5174",
+    "localhost:5175",
+    "127.0.0.1:5175",
+    "localhost:5176",
+    "127.0.0.1:5176",
+    "localhost:5177",
+    "127.0.0.1:5177",
+    "localhost:5178",
+    "127.0.0.1:5178",
+    "localhost:5173",
+    "127.0.0.1:5173",
+)
+
+
 class MerchantPolicy:
+    def __init__(self, allowed_origin_fragments: tuple[str, ...] = ()) -> None:
+        normalized_fragments = tuple(fragment for fragment in allowed_origin_fragments if fragment.strip() != "")
+        self._allowed_origin_fragments = DEFAULT_ALLOWED_ORIGIN_FRAGMENTS + normalized_fragments
+
     def validate_action(self, action: ComputerAction, observation: BrowserObservation) -> None:
         self._validate_current_url(observation)
         if action.type in {ComputerActionType.TYPE, ComputerActionType.KEYPRESS}:
@@ -14,21 +34,7 @@ class MerchantPolicy:
             self._validate_click(action, observation)
 
     def _validate_current_url(self, observation: BrowserObservation) -> None:
-        allowed = (
-            "localhost:5174" in observation.url
-            or "127.0.0.1:5174" in observation.url
-            or "localhost:5175" in observation.url
-            or "127.0.0.1:5175" in observation.url
-            or "localhost:5176" in observation.url
-            or "127.0.0.1:5176" in observation.url
-            or "localhost:5177" in observation.url
-            or "127.0.0.1:5177" in observation.url
-            or "localhost:5178" in observation.url
-            or "127.0.0.1:5178" in observation.url
-            or "localhost:5173" in observation.url
-            or "127.0.0.1:5173" in observation.url
-        )
-        if not allowed:
+        if not any(fragment in observation.url for fragment in self._allowed_origin_fragments):
             raise PolicyViolationError("Computer use is limited to the merchant storefront origin")
 
     def _validate_text_action(self, text: str) -> None:
@@ -50,3 +56,11 @@ class MerchantPolicy:
 
 
 merchant_policy = MerchantPolicy()
+
+
+def merchant_policy_for_public_url(public_url: str | None) -> MerchantPolicy:
+    if public_url is None:
+        return merchant_policy
+    if "{session_id}" in public_url:
+        return MerchantPolicy((public_url.split("{session_id}")[0].rstrip("/"),))
+    return MerchantPolicy((public_url.rstrip("/"),))

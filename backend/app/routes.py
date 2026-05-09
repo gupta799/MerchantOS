@@ -4,6 +4,7 @@ import asyncio
 
 from fastapi import APIRouter, WebSocket, WebSocketDisconnect
 
+from app.browser.kernel_runner import KernelSimulationRunner
 from app.config import get_settings
 from app.errors import AgentReadyError
 from app.ids import SessionId
@@ -99,6 +100,7 @@ async def runtime() -> RuntimeResponse:
             if settings.computer_client_mode == "tzafon"
             else settings.openai_computer_model
         ),
+        browser_environment=settings.browser_environment,
         demo_mode=settings.harness_mode == "scripted" or settings.computer_client_mode == "scripted",
     )
 
@@ -110,7 +112,10 @@ async def create_agent_intent(request: AgentIntentRequest) -> AgentIntentRespons
 
 @router.post("/api/simulations", response_model=SimulationRun)
 async def create_simulation(request: SimulationCreateRequest) -> SimulationRun:
-    return _simulation_service().create_simulation(request)
+    simulation = _simulation_service().create_simulation(request)
+    if get_settings().browser_environment == "kernel":
+        asyncio.create_task(_run_kernel_simulation_safely(simulation.simulation_id))
+    return simulation
 
 
 @router.get("/api/simulations/{simulation_id}", response_model=SimulationRun)
@@ -181,3 +186,16 @@ async def _run_guide_safely(guide_service: GuideService, session_id: SessionId) 
         await session_channel.send_error(session_id, str(exc))
     except Exception as exc:
         await session_channel.send_error(session_id, f"Unexpected guide failure: {exc}")
+
+
+async def _run_kernel_simulation_safely(simulation_id: SimulationId) -> None:
+    settings = get_settings()
+    try:
+        await KernelSimulationRunner(settings, store).run(simulation_id)
+    except AgentReadyError as exc:
+        SimulationService(store, settings).mark_failed(simulation_id, str(exc))
+    except Exception as exc:
+        SimulationService(store, settings).mark_failed(
+            simulation_id,
+            f"Unexpected Kernel simulation failure: {exc}",
+        )

@@ -14,6 +14,7 @@ export type RelationshipPrompt = "order_updates" | "loyalty_signup" | "save_pref
 export type HarnessMode = "scripted" | "deepagents";
 export type HarnessModelProvider = "llamacpp" | "ollama" | "openai";
 export type ComputerClientMode = "scripted" | "openai" | "tzafon";
+export type BrowserEnvironment = "local_sdk" | "kernel";
 export type GuideStatus =
   | "idle"
   | "waiting_for_browser"
@@ -75,6 +76,9 @@ export type SimulationRun = {
   simulation_id: string;
   session_id: string;
   status: SimulationStatus;
+  browser_environment: BrowserEnvironment;
+  browser_session_id: string | null;
+  browser_live_view_url: string | null;
   scenario: SimulationScenario;
   current_goal: string;
   report: AgentReadinessReport;
@@ -193,5 +197,6 @@ export type RuntimeResponse = {
   harness_model: string;
   computer_client_mode: ComputerClientMode;
   computer_model: string;
+  browser_environment: BrowserEnvironment;
   demo_mode: boolean;
 };

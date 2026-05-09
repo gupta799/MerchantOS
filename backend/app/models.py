@@ -29,6 +29,11 @@ class SimulationStatus(StrEnum):
     FAILED = "failed"
 
 
+class BrowserEnvironment(StrEnum):
+    LOCAL_SDK = "local_sdk"
+    KERNEL = "kernel"
+
+
 class FailureLabel(StrEnum):
     NO_VISIBLE_ACTION = "no_visible_action"
     NO_OP_CLICK = "no_op_click"
@@ -324,6 +329,9 @@ class SimulationRun(BaseModel):
     simulation_id: SimulationId
     session_id: SessionId
     status: SimulationStatus
+    browser_environment: BrowserEnvironment = BrowserEnvironment.LOCAL_SDK
+    browser_session_id: str | None = None
+    browser_live_view_url: str | None = None
     scenario: SimulationScenario
     current_goal: str
     report: AgentReadinessReport
@@ -375,4 +383,5 @@ class RuntimeResponse(BaseModel):
     harness_model: str
     computer_client_mode: Literal["scripted", "openai", "tzafon"]
     computer_model: str
+    browser_environment: Literal["local_sdk", "kernel"]
     demo_mode: bool

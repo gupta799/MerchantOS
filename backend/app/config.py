@@ -11,6 +11,7 @@ from app.errors import ConfigError
 ComputerClientMode = Literal["scripted", "openai", "tzafon"]
 HarnessMode = Literal["scripted", "deepagents"]
 HarnessModelProvider = Literal["llamacpp", "ollama", "openai"]
+BrowserEnvironmentMode = Literal["local_sdk", "kernel"]
 
 
 class AppSettings(BaseSettings):
@@ -24,6 +25,18 @@ class AppSettings(BaseSettings):
         default="tzafon.northstar-cua-fast-1.6",
         validation_alias="TZAFON_COMPUTER_MODEL",
     )
+    kernel_api_key: SecretStr | None = Field(default=None, validation_alias="KERNEL_API_KEY")
+    kernel_api_base_url: str = Field(default="https://api.onkernel.com", validation_alias="KERNEL_API_BASE_URL")
+    browser_environment: BrowserEnvironmentMode = Field(
+        default="local_sdk",
+        validation_alias="AGENTREADY_BROWSER_ENV",
+    )
+    kernel_public_storefront_url: str | None = Field(
+        default=None,
+        validation_alias="AGENTREADY_PUBLIC_STOREFRONT_URL",
+    )
+    kernel_viewport_width: int = Field(default=1280, validation_alias="KERNEL_VIEWPORT_WIDTH")
+    kernel_viewport_height: int = Field(default=800, validation_alias="KERNEL_VIEWPORT_HEIGHT")
     harness_model_provider_override: HarnessModelProvider | None = Field(
         default=None,
         validation_alias="AGENTREADY_HARNESS_MODEL_PROVIDER",
@@ -87,6 +100,15 @@ class AppSettings(BaseSettings):
             raise ConfigError(
                 "OPENAI_API_KEY is required when AGENTREADY_HARNESS_MODEL_PROVIDER=openai"
             )
+        if self.browser_environment == "kernel":
+            if self.kernel_api_key is None:
+                raise ConfigError("KERNEL_API_KEY is required when AGENTREADY_BROWSER_ENV=kernel")
+            if self.tzafon_api_key is None:
+                raise ConfigError("TZAFON_API_KEY is required when AGENTREADY_BROWSER_ENV=kernel")
+            if self.kernel_public_storefront_url is None or self.kernel_public_storefront_url.strip() == "":
+                raise ConfigError(
+                    "AGENTREADY_PUBLIC_STOREFRONT_URL is required when AGENTREADY_BROWSER_ENV=kernel"
+                )
 
 
 @lru_cache
