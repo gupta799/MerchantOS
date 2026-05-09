@@ -53,14 +53,7 @@ class TzafonComputerClient(ComputerClient):
                 json=payload.model_dump(),
             ) as response:
                 response.raise_for_status()
-                lines: list[str] = []
-                async for line in response.aiter_lines():
-                    stripped = line.strip()
-                    if stripped != "":
-                        lines.append(stripped)
-                    if len(lines) >= 24:
-                        break
-        return TzafonStreamSummary(lines=lines)
+        return TzafonStreamSummary(lines=["stream_opened"])
 
     def _turn_from_observation(
         self,
