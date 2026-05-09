@@ -21,6 +21,12 @@ from app.services.trace_service import TraceService
 from app.store import InMemoryStore
 
 
+def kernel_policy_url(settings: AppSettings) -> str | None:
+    if settings.kernel_public_storefront_url is not None and settings.kernel_public_storefront_url.strip() != "":
+        return settings.kernel_public_storefront_url
+    return settings.kernel_local_storefront_url
+
+
 class KernelBrowserChannel:
     def __init__(
         self,
@@ -104,7 +110,7 @@ class KernelSimulationRunner:
             channel=channel,
             harness=build_merchant_harness(self._settings, session_service, cart_service),
             computer_service=ComputerService(self._settings),
-            policy=merchant_policy_for_public_url(self._settings.kernel_public_storefront_url),
+            policy=merchant_policy_for_public_url(kernel_policy_url(self._settings)),
             session_service=session_service,
             cart_service=cart_service,
             event_service=EventService(self._store),

@@ -393,9 +393,21 @@ class KernelHttpBrowserDriver(KernelBrowserDriverProtocol):
 
 
 def kernel_target_url(settings: AppSettings, session_id: SessionId) -> str:
-    if settings.kernel_public_storefront_url is None:
-        raise ConfigError("AGENTREADY_PUBLIC_STOREFRONT_URL is required for Kernel browser sessions")
-    configured = settings.kernel_public_storefront_url.strip()
+    public_storefront_url = (
+        settings.kernel_public_storefront_url.strip()
+        if settings.kernel_public_storefront_url is not None
+        else ""
+    )
+    configured = (
+        public_storefront_url
+        if public_storefront_url != ""
+        else settings.kernel_local_storefront_url.strip()
+    )
+    if configured == "":
+        raise ConfigError(
+            "AGENTREADY_KERNEL_LOCAL_STOREFRONT_URL or AGENTREADY_PUBLIC_STOREFRONT_URL "
+            "is required for Kernel browser sessions"
+        )
     if "{session_id}" in configured:
         return configured.replace("{session_id}", str(session_id))
     if "/agent-session/" in configured:

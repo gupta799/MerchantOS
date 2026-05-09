@@ -56,19 +56,28 @@ DeepAgents/Gemma harness brain
 
 DeepAgents is still central. Kernel does not replace the harness; it replaces the local browser SDK as the execution environment. Tzafon proposes or accepts the computer-use task, Kernel runs the browser and mouse/keyboard/screenshot controls, and MerchantOS records the run.
 
-To run the Kernel browser environment, expose the frontend and backend publicly with your preferred tunnel/deploy setup, then use a public storefront URL that can load `/agent-session/{session_id}`:
+To run the Kernel browser environment locally, use the SSH reverse-tunnel flow in
+[LOCAL_KERNEL.md](LOCAL_KERNEL.md). The important detail is that the Kernel VM sees your laptop dev servers as its own localhost:
+
+```text
+Kernel browser VM http://localhost:5173 -> your local Vite server
+Kernel browser VM http://localhost:8000 -> your local FastAPI server
+```
+
+Then start the backend in Kernel mode:
 
 ```bash
 export AGENTREADY_BROWSER_ENV=kernel
-export AGENTREADY_PUBLIC_STOREFRONT_URL=https://your-public-frontend.example
+export AGENTREADY_KERNEL_LOCAL_STOREFRONT_URL=http://localhost:5173
 export KERNEL_API_KEY=...
 export AGENTREADY_COMPUTER_CLIENT=tzafon
 export TZAFON_API_KEY=...
 ```
 
-You can also use a URL template:
+For deployed demos, you can still use a public URL or URL template:
 
 ```bash
+export AGENTREADY_PUBLIC_STOREFRONT_URL=https://your-public-frontend.example
 export AGENTREADY_PUBLIC_STOREFRONT_URL=https://your-public-frontend.example/agent-session/{session_id}
 ```
 
