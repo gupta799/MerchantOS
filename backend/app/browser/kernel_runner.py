@@ -114,7 +114,7 @@ class KernelSimulationRunner:
             session_service=session_service,
             cart_service=cart_service,
             event_service=EventService(self._store),
-            trace_service=TraceService(self._store),
+            trace_service=TraceService(self._store, self._settings),
         )
         status = await guide_service.run_guided_session(simulation.session_id)
         if status == GuideStatus.DONE:

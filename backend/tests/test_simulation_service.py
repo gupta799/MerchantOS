@@ -53,7 +53,14 @@ def test_simulation_telemetry_aggregates_trace_entries() -> None:
         AppSettings(AGENTREADY_HARNESS_MODE="scripted", AGENTREADY_COMPUTER_CLIENT="scripted"),
     )
     run = service.create_simulation(SimulationCreateRequest())
-    trace_service = TraceService(local_store)
+    trace_service = TraceService(
+        local_store,
+        AppSettings(
+            AGENTREADY_HARNESS_MODE="scripted",
+            AGENTREADY_COMPUTER_CLIENT="scripted",
+            TELEMETRY_OUTPUT_DIR="",
+        ),
+    )
     trace_service.record_observation(run.session_id, observation(cart_count=0))
     trace_service.record_action(
         run.session_id,

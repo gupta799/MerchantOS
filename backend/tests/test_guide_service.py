@@ -95,7 +95,14 @@ async def test_guide_service_runs_observation_to_trace_loop() -> None:
     session_service = SessionService(local_store)
     cart_service = CartService(local_store)
     event_service = EventService(local_store)
-    trace_service = TraceService(local_store)
+    trace_service = TraceService(
+        local_store,
+        AppSettings(
+            AGENTREADY_HARNESS_MODE="scripted",
+            AGENTREADY_COMPUTER_CLIENT="scripted",
+            TELEMETRY_OUTPUT_DIR="",
+        ),
+    )
     channel = FakeChannel(
         observations=[
             base_observation(selected=False, cart_count=0),

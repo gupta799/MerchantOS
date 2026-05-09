@@ -59,7 +59,7 @@ def _cart_service() -> CartService:
 
 
 def _trace_service() -> TraceService:
-    return TraceService(store)
+    return TraceService(store, get_settings())
 
 
 def _simulation_service() -> SimulationService:

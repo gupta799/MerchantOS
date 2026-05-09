@@ -54,6 +54,7 @@ class AppSettings(BaseSettings):
     )
     harness_mode: HarnessMode = Field(default="deepagents", validation_alias="AGENTREADY_HARNESS_MODE")
     computer_client_mode: ComputerClientMode = Field(default="scripted", validation_alias="AGENTREADY_COMPUTER_CLIENT")
+    telemetry_output_dir: str = Field(default="./cache_telemetry", validation_alias="TELEMETRY_OUTPUT_DIR")
     frontend_base_url: str = Field(default="http://127.0.0.1:5174", validation_alias="FRONTEND_BASE_URL")
     backend_base_url: str = Field(default="http://localhost:8000", validation_alias="BACKEND_BASE_URL")
     allowed_origins: tuple[str, ...] = (
