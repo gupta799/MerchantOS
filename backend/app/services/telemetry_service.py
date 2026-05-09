@@ -38,7 +38,7 @@ class TelemetryService:
         report = self.build_report(simulation_id, simulation.session_id)
         metrics = {metric.key: metric for metric in report.metrics}
         action_entries = [entry for entry in traces if entry.action is not None]
-        last_action = action_entries[-1] if action_entries else None
+        last_action = action_entries[-1] if len(action_entries) > 0 else None
         last_action_label = "observation"
         if last_action is not None and last_action.action is not None:
             last_action_label = f"{last_action.action.type} · {last_action.action.reason}"
@@ -99,17 +99,17 @@ class TelemetryService:
         )
 
     def summarize_all_simulations(self) -> TelemetrySummaryAllResponse:
-        simulations = list(self._store.simulations.values())
+        simulations = self._store.list_simulations()
         if len(simulations) == 0:
             return TelemetrySummaryAllResponse(
                 simulation_ids=[],
                 model="openai:gpt-4.1-mini-mock",
                 markdown="# Telemetry analysis\n\nNo simulations available yet.",
             )
-        summaries = [self.summarize_simulation(sim.simulation_id) for sim in simulations]
+        summaries = [self.summarize_simulation(simulation.simulation_id) for simulation in simulations]
         scores = [self._store.get_simulation(summary.simulation_id).report.readiness_score for summary in summaries]
         average_score = round(sum(scores) / len(scores)) if len(scores) > 0 else 0
-        latest = max(simulations, key=lambda sim: sim.created_at)
+        latest = max(simulations, key=lambda simulation: simulation.created_at)
         lines = [
             "# Telemetry analysis (all simulations)",
             "",
@@ -131,7 +131,7 @@ class TelemetryService:
             "- Add MCP tools/resources for the highest-friction steps.",
         ]
         return TelemetrySummaryAllResponse(
-            simulation_ids=[sim.simulation_id for sim in simulations],
+            simulation_ids=[simulation.simulation_id for simulation in simulations],
             model="openai:gpt-4.1-mini-mock",
             markdown="\n".join(lines),
         )

@@ -59,7 +59,7 @@ async def test_deepagents_harness_returns_typed_plan() -> None:
             ]
         ),
     )
-    harness = DeepAgentsMerchantHarness(session_service, graph)
+    harness = DeepAgentsMerchantHarness(session_service, graph, settings)
     plan = await harness.plan_visual_guidance(created.session_id)
     assert plan.product_id == ProductId("shoe_123")
     assert plan.variant_id == VariantId("shoe_123_105_wide")
@@ -82,7 +82,7 @@ async def test_deepagents_harness_falls_back_when_local_model_misses_json_shape(
             responses=["I recommend StormRunner GTX in 10.5 Wide, then stop before checkout."]
         ),
     )
-    harness = DeepAgentsMerchantHarness(session_service, graph)
+    harness = DeepAgentsMerchantHarness(session_service, graph, settings)
     plan = await harness.plan_visual_guidance(created.session_id)
     assert plan.product_id == ProductId("shoe_123")
     assert plan.variant_id == VariantId("shoe_123_105_wide")

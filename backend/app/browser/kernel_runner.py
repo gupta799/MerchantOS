@@ -116,15 +116,16 @@ class KernelSimulationRunner:
             simulation_service=simulation_service,
             driver=self._driver,
         )
+        trace_service = TraceService(self._store, self._settings)
         guide_service = GuideService(
             channel=channel,
-            harness=build_merchant_harness(self._settings, session_service, cart_service),
+            harness=build_merchant_harness(self._settings, session_service, cart_service, trace_service),
             computer_service=ComputerService(self._settings),
             policy=merchant_policy_for_public_url(kernel_policy_url(self._settings)),
             session_service=session_service,
             cart_service=cart_service,
             event_service=EventService(self._store),
-            trace_service=TraceService(self._store, self._settings),
+            trace_service=trace_service,
         )
         status = await guide_service.run_guided_session(simulation.session_id)
         if status == GuideStatus.DONE:

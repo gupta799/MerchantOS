@@ -9,9 +9,9 @@ import type {
   SimulationListResponse,
   SimulationRun,
   SimulationTelemetryResponse,
+  TelemetrySummaryAllResponse,
   TelemetrySummaryRequest,
   TelemetrySummaryResponse,
-  TelemetrySummaryAllResponse,
   TraceResponse
 } from "./types";
 

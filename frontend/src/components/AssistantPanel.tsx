@@ -12,8 +12,8 @@ type AssistantPanelProps = {
 
 const promptLabels: Record<RelationshipPrompt, string> = {
   order_updates: "Order updates",
-  loyalty_signup: "RidgeRun rewards",
-  save_preferences: "Save fit preferences"
+  loyalty_signup: "Trail club rewards",
+  save_preferences: "Save fit profile"
 };
 
 export function AssistantPanel({
@@ -27,17 +27,13 @@ export function AssistantPanel({
   const activeRuntime = runtime ?? null;
   const hasScriptedComponent =
     activeRuntime?.harness_mode === "scripted" || activeRuntime?.computer_client_mode === "scripted";
-  const modeLabel =
-    activeRuntime?.harness_mode === "deepagents" && activeRuntime.computer_client_mode === "scripted"
-      ? "Hybrid demo mode"
-      : hasScriptedComponent
-        ? "Scripted demo mode"
-        : "Live agent mode";
+  const usesTzafon = activeRuntime?.computer_client_mode === "tzafon";
+  const modeLabel = usesTzafon ? "Tzafon Northstar live" : "Readiness probe";
 
   return (
     <aside className="assistant-panel">
-      <p className="eyebrow">Merchant assistant</p>
-      <h2>Autonomous CUA simulation</h2>
+      <p className="eyebrow">Demo control</p>
+      <h2>Computer-use simulation</h2>
       {activeRuntime !== null && (
         <div className={hasScriptedComponent ? "mode-banner scripted" : "mode-banner live"}>
           <strong>{modeLabel}</strong>
@@ -49,14 +45,19 @@ export function AssistantPanel({
       )}
       <p className="intent">“{intentGoal}”</p>
       <p>{assistantMessage}</p>
-      {hasScriptedComponent && (
+      {usesTzafon ? (
         <p className="demo-note">
-          Press allow to run deterministic mocked CUA actions: select the recommended size, add it to cart, and
-          write telemetry to the trace.
+          Sends this storefront observation to Tzafon Northstar, executes approved browser actions here,
+          and records the trace for MerchantOS telemetry.
+        </p>
+      ) : null}
+      {hasScriptedComponent && activeRuntime?.computer_client_mode !== "tzafon" && (
+        <p className="demo-note">
+          Runs the agent-readiness probe without exposing the simulation layer to shoppers.
         </p>
       )}
       <button type="button" className="primary-action" onClick={onAllowGuide} disabled={guideRunning}>
-        {guideRunning ? "Simulating..." : "Run simulation"}
+        {guideRunning ? "Running simulation..." : usesTzafon ? "Run Tzafon CUA simulation" : "Run readiness probe"}
       </button>
       <div className="prompt-list">
         {prompts.map((prompt) => (

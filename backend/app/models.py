@@ -294,11 +294,26 @@ class ActionVerification(BaseModel):
     message: str
 
 
+class HarnessTrace(BaseModel):
+    phase: str
+    provider: str
+    model: str
+    message: str
+    prompt_text: str | None = None
+    raw_output_text: str | None = None
+    product_id: ProductId | None = None
+    variant_id: VariantId | None = None
+    goal: str | None = None
+    assistant_message: str | None = None
+    relationship_prompt: RelationshipPrompt | None = None
+
+
 class TraceEntry(BaseModel):
     trace_id: TraceId
     session_id: SessionId
     action: ComputerAction | None = None
     observation: BrowserObservation | None = None
+    harness: HarnessTrace | None = None
     verification: ActionVerification
     created_at: datetime = Field(default_factory=utc_now)
 

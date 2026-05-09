@@ -25,10 +25,10 @@ from app.models import (
     SimulationListResponse,
     SimulationRun,
     SimulationTelemetryResponse,
+    TelemetryExportBundle,
+    TelemetrySummaryAllResponse,
     TelemetrySummaryRequest,
     TelemetrySummaryResponse,
-    TelemetrySummaryAllResponse,
-    TelemetryExportBundle,
     TraceResponse,
 )
 from app.agents.merchant_harness import build_merchant_harness
@@ -82,7 +82,7 @@ def _guide_service() -> GuideService:
     cart_service = _cart_service()
     return GuideService(
         channel=session_channel,
-        harness=build_merchant_harness(settings, session_service, cart_service),
+        harness=build_merchant_harness(settings, session_service, cart_service, _trace_service()),
         computer_service=ComputerService(settings),
         policy=merchant_policy,
         session_service=session_service,

@@ -76,8 +76,8 @@ class SimulationService:
         return self._store.update_simulation(updated)
 
     def list_simulations(self) -> SimulationListResponse:
-        simulations = [self.get_simulation(sim.simulation_id) for sim in self._store.list_simulations()]
-        simulations.sort(key=lambda sim: sim.created_at, reverse=True)
+        simulations = [self.get_simulation(simulation.simulation_id) for simulation in self._store.list_simulations()]
+        simulations.sort(key=lambda simulation: simulation.created_at, reverse=True)
         return SimulationListResponse(simulations=simulations)
 
     def mark_running(self, simulation_id: SimulationId) -> SimulationRun:
