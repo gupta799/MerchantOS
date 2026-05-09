@@ -389,28 +389,30 @@ export function MerchantHomePage(): ReactElement {
           <span>M</span>
           MerchantOS
         </a>
-        <label className="retail-search">
-          <span>Search</span>
-          <input readOnly value="runs, traces, failures, MCP readiness" />
-        </label>
         <nav className="shop-nav" aria-label="Lab navigation">
-          <a href="#telemetry">Agent telemetry</a>
-          <a href="#testbed">RidgeRun test site</a>
+          <a href="#telemetry">Telemetry</a>
+          <a href="#testbed">Testbed</a>
           <a href="#telemetry" onClick={() => setTelemetryOpen(true)}>MCP readiness</a>
         </nav>
         <div className="header-actions">
-          <a href="#testbed">View environment</a>
+          <button type="button" onClick={() => setTelemetryOpen(true)}>Open console</button>
+          <a href="#testbed">View testbed</a>
         </div>
       </header>
 
       <section className="lab-hero">
-        <div>
+        <div className="dashboard-copy">
           <p className="eyebrow">MerchantOS dashboard</p>
-          <h1>Agent-readiness telemetry for commerce teams.</h1>
+          <h1>Computer-use readiness dashboard</h1>
           <p>
-            Tzafon Northstar navigates this storefront like a buyer. AgentReady records every
-            observation, click, verification, and failure so merchants can make their sites agent-ready.
+            Monitor autonomous buying-agent runs, inspect every action and verification, and turn
+            weak storefront affordances into concrete MCP and agent-readiness fixes.
           </p>
+          <div className="dashboard-chips" aria-label="Runtime status">
+            <span>{runtime?.computer_client_mode ?? "tzafon"} computer use</span>
+            <span>{runtime?.browser_environment ?? "local"} browser</span>
+            <span>{traceEntries.length} trace events</span>
+          </div>
         </div>
         <aside className="simulation-map" aria-label="Run status">
           <div className="map-header">

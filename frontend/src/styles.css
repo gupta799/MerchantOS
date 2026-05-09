@@ -54,13 +54,14 @@ button {
   top: 0;
   z-index: 10;
   display: grid;
-  grid-template-columns: auto minmax(220px, 460px) minmax(0, 1fr) auto;
+  grid-template-columns: auto minmax(0, 1fr) auto;
   align-items: center;
-  gap: 22px;
-  padding: 22px clamp(18px, 4vw, 54px);
-  background: #f7f7f4;
+  gap: clamp(18px, 3vw, 34px);
+  padding: 18px clamp(18px, 4vw, 54px);
+  background: rgba(247, 247, 244, 0.96);
   color: #111;
   border-bottom: 1px solid #e7e7e2;
+  backdrop-filter: blur(18px);
 }
 
 .brand-mark {
@@ -84,55 +85,49 @@ button {
   font-size: 14px;
 }
 
-.retail-search {
-  display: grid;
-  grid-template-columns: auto minmax(0, 1fr);
-  align-items: center;
-  overflow: hidden;
-  border: 1px solid #deded8;
-  border-radius: 999px;
-  background: #fff;
-  color: #111;
-}
-
-.retail-search span {
-  display: grid;
-  min-height: 34px;
-  place-items: center;
-  padding: 0 14px;
-  background: transparent;
-  color: #77776f;
-  font-size: 12px;
-  font-weight: 550;
-}
-
-.retail-search input {
-  width: 100%;
-  min-width: 0;
-  border: 0;
-  padding: 0 14px;
-  color: #111;
-  background: #fff;
-  font-size: 13px;
-  font-weight: 500;
-}
-
 .shop-nav {
   display: flex;
   justify-content: flex-start;
-  gap: 20px;
+  gap: 6px;
   color: #6f6f68;
   font-size: 13px;
   font-weight: 500;
+}
+
+.shop-nav a {
+  border-radius: 999px;
+  padding: 8px 11px;
+  transition: background 160ms ease, color 160ms ease;
+}
+
+.shop-nav a:hover {
+  background: #edede8;
+  color: #111;
 }
 
 .header-actions {
   display: inline-flex;
   justify-content: flex-end;
   align-items: center;
-  gap: 12px;
+  gap: 8px;
   font-size: 13px;
   font-weight: 550;
+}
+
+.header-actions button,
+.header-actions a {
+  min-height: 34px;
+  border: 1px solid #d8d8d2;
+  border-radius: 999px;
+  padding: 0 12px;
+  background: #fff;
+  color: #111;
+  font-weight: 600;
+}
+
+.header-actions button {
+  background: #111;
+  color: #fff;
 }
 
 .cart-link {
@@ -152,19 +147,19 @@ button {
 
 .lab-hero {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(330px, 430px);
+  grid-template-columns: minmax(0, 1fr) minmax(340px, 430px);
   gap: clamp(20px, 4vw, 46px);
-  align-items: center;
-  padding: clamp(42px, 7vw, 86px) clamp(18px, 4vw, 54px);
+  align-items: start;
+  padding: clamp(34px, 5vw, 58px) clamp(18px, 4vw, 54px);
   background: #f7f7f4;
   border-bottom: 1px solid #dedede;
 }
 
 .lab-hero h1 {
-  max-width: 880px;
+  max-width: 760px;
   margin: 0;
-  font-size: clamp(40px, 6vw, 78px);
-  line-height: 0.98;
+  font-size: clamp(38px, 5vw, 64px);
+  line-height: 1;
   letter-spacing: 0;
 }
 
@@ -173,6 +168,32 @@ button {
   color: #3f4741;
   font-size: 18px;
   line-height: 1.55;
+}
+
+.dashboard-copy {
+  display: grid;
+  gap: 18px;
+}
+
+.dashboard-copy p {
+  margin: 0;
+}
+
+.dashboard-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 4px;
+}
+
+.dashboard-chips span {
+  border: 1px solid #d8d8d2;
+  border-radius: 999px;
+  padding: 8px 11px;
+  background: #fff;
+  color: #55554f;
+  font-size: 12px;
+  font-weight: 650;
 }
 
 .simulation-map {
