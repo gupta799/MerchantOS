@@ -30,6 +30,18 @@ class FakeKernelDriver:
             target_url=target_url,
         )
 
+    async def connect_session(
+        self,
+        session_id: str,
+        target_url: str,
+        live_view_url: str | None,
+    ) -> KernelBrowserSession:
+        return KernelBrowserSession(
+            session_id=session_id,
+            live_view_url=live_view_url,
+            target_url=target_url,
+        )
+
     async def capture_observation(self, session: KernelBrowserSession) -> BrowserObservation:
         return self._observation(session.target_url)
 
@@ -89,3 +101,28 @@ async def test_kernel_runner_reuses_deep_guidance_flow_with_managed_browser() ->
     assert updated.browser_session_id == "kernel_browser_123"
     assert updated.browser_live_view_url == "https://kernel.example/live/kernel_browser_123"
     assert len(trace.entries) >= 3
+
+
+async def test_kernel_runner_can_attach_to_existing_browser_session() -> None:
+    local_store = InMemoryStore()
+    settings = AppSettings(
+        _env_file=None,
+        KERNEL_API_KEY="ker-test",
+        TZAFON_API_KEY="tz-test",
+        AGENTREADY_BROWSER_ENV="kernel",
+        AGENTREADY_KERNEL_LOCAL_STOREFRONT_URL="http://localhost:5173",
+        KERNEL_EXISTING_BROWSER_SESSION_ID="kernel_existing_123",
+        KERNEL_EXISTING_BROWSER_LIVE_VIEW_URL="https://kernel.example/live/kernel_existing_123",
+        AGENTREADY_HARNESS_MODE="scripted",
+        AGENTREADY_COMPUTER_CLIENT="scripted",
+    )
+    simulation_service = SimulationService(local_store, settings)
+    simulation = simulation_service.create_simulation(SimulationCreateRequest())
+
+    status = await KernelSimulationRunner(settings, local_store, FakeKernelDriver()).run(simulation.simulation_id)
+    updated = simulation_service.get_simulation(simulation.simulation_id)
+
+    assert status == GuideStatus.DONE
+    assert updated.status == SimulationStatus.COMPLETED
+    assert updated.browser_session_id == "kernel_existing_123"
+    assert updated.browser_live_view_url == "https://kernel.example/live/kernel_existing_123"

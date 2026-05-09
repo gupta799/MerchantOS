@@ -33,6 +33,14 @@ class KernelBrowserDriverProtocol(Protocol):
     async def create_session(self, target_url: str) -> KernelBrowserSession:
         ...
 
+    async def connect_session(
+        self,
+        session_id: str,
+        target_url: str,
+        live_view_url: str | None,
+    ) -> KernelBrowserSession:
+        ...
+
     async def capture_observation(self, session: KernelBrowserSession) -> BrowserObservation:
         ...
 
@@ -206,6 +214,24 @@ class KernelHttpBrowserDriver(KernelBrowserDriverProtocol):
         return KernelBrowserSession(
             session_id=browser.session_id,
             live_view_url=browser.browser_live_view_url,
+            target_url=target_url,
+        )
+
+    async def connect_session(
+        self,
+        session_id: str,
+        target_url: str,
+        live_view_url: str | None,
+    ) -> KernelBrowserSession:
+        async with self._client() as client:
+            await self._execute_playwright(
+                client,
+                session_id,
+                f"await page.goto({target_url!r}, {{ waitUntil: 'networkidle', timeout: 45000 }});\n{SNAPSHOT_SCRIPT}",
+            )
+        return KernelBrowserSession(
+            session_id=session_id,
+            live_view_url=live_view_url,
             target_url=target_url,
         )
 
