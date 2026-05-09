@@ -1,8 +1,8 @@
-# AgentReady
+# MerchantOS
 
-AgentReady is an automated computer-use telemetry lab for agent-ready commerce.
+Computer use harness for agents to simulate agentic commerce environments for merchants.
 
-The demo runs autonomous CUA simulations against a controlled RidgeRun merchant storefront, captures screenshots, DOM summaries, actions, browser results, and policy verification, then turns the trajectory into a merchant telemetry dashboard with MCP readiness recommendations.
+MerchantOS is an automated computer-use telemetry lab for agent-ready commerce. The demo runs autonomous CUA simulations against a controlled RidgeRun merchant storefront, captures screenshots, DOM summaries, actions, browser results, and policy verification, then turns the trajectory into a merchant telemetry dashboard with MCP readiness recommendations.
 
 ## Quick Start
 
