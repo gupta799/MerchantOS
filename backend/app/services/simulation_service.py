@@ -16,6 +16,7 @@ from app.models import (
     SimulationScenario,
     SimulationStatus,
     SimulationTelemetryResponse,
+    TelemetryExportBundle,
     TraceEntry,
     TraceResponse,
 )
@@ -149,6 +150,26 @@ class SimulationService:
                     schema_preview_json='{"type":"object","properties":{"product_id":{"type":"string"},"variant_id":{"type":"string"},"quantity":{"type":"integer","minimum":1}},"required":["product_id","variant_id"]}',
                 ),
             ],
+        )
+
+    def export_bundle(self, simulation_id: SimulationId) -> TelemetryExportBundle:
+        simulation = self.get_simulation(simulation_id)
+        session = self._store.get_session(simulation.session_id)
+        trace = TraceResponse(
+            session_id=simulation.session_id,
+            entries=self._store.traces_for_session(simulation.session_id),
+        )
+        telemetry = SimulationTelemetryResponse(
+            simulation_id=simulation_id,
+            metrics=simulation.report.metrics,
+            failures=simulation.report.failures,
+        )
+        return TelemetryExportBundle(
+            simulation=simulation,
+            session=session,
+            trace=trace,
+            telemetry=telemetry,
+            report=simulation.report,
         )
 
     def _scenario_for(self, scenario_id: str) -> SimulationScenario:

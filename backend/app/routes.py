@@ -24,6 +24,7 @@ from app.models import (
     SimulationCreateRequest,
     SimulationRun,
     SimulationTelemetryResponse,
+    TelemetryExportBundle,
     TraceResponse,
 )
 from app.agents.merchant_harness import build_merchant_harness
@@ -136,6 +137,11 @@ async def get_simulation_telemetry(simulation_id: SimulationId) -> SimulationTel
 @router.get("/api/simulations/{simulation_id}/mcp-readiness", response_model=McpReadinessResponse)
 async def get_simulation_mcp_readiness(simulation_id: SimulationId) -> McpReadinessResponse:
     return _simulation_service().mcp_readiness(simulation_id)
+
+
+@router.get("/api/simulations/{simulation_id}/export", response_model=TelemetryExportBundle)
+async def export_simulation(simulation_id: SimulationId) -> TelemetryExportBundle:
+    return _simulation_service().export_bundle(simulation_id)
 
 
 @router.get("/api/sessions/{session_id}", response_model=SessionResponse)

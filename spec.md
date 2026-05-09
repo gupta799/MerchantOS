@@ -208,7 +208,12 @@ GET /api/simulations/{id}
 GET /api/simulations/{id}/trace
 GET /api/simulations/{id}/telemetry
 GET /api/simulations/{id}/mcp-readiness
+GET /api/simulations/{id}/export
 ```
+
+The export endpoint returns a single JSON bundle containing the simulation run, session data,
+trace entries, telemetry metrics/failures, and the readiness report. It is intended for
+downstream services that analyze successes and failures without needing live SDK access.
 
 ### Session
 

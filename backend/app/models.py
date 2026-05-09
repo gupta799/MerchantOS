@@ -364,6 +364,14 @@ class McpReadinessResponse(BaseModel):
     recommendations: list[McpReadinessRecommendation]
 
 
+class TelemetryExportBundle(BaseModel):
+    simulation: SimulationRun
+    session: MerchantSession
+    trace: TraceResponse
+    telemetry: SimulationTelemetryResponse
+    report: AgentReadinessReport
+
+
 class CustomerMessageRequest(BaseModel):
     message: str
 
