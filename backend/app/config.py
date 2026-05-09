@@ -39,6 +39,14 @@ class AppSettings(BaseSettings):
         default="http://localhost:5173",
         validation_alias="AGENTREADY_KERNEL_LOCAL_STOREFRONT_URL",
     )
+    kernel_existing_browser_session_id: str | None = Field(
+        default=None,
+        validation_alias="KERNEL_EXISTING_BROWSER_SESSION_ID",
+    )
+    kernel_existing_browser_live_view_url: str | None = Field(
+        default=None,
+        validation_alias="KERNEL_EXISTING_BROWSER_LIVE_VIEW_URL",
+    )
     kernel_viewport_width: int = Field(default=1280, validation_alias="KERNEL_VIEWPORT_WIDTH")
     kernel_viewport_height: int = Field(default=800, validation_alias="KERNEL_VIEWPORT_HEIGHT")
     harness_model_provider_override: HarnessModelProvider | None = Field(

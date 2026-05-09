@@ -116,11 +116,22 @@ npm install -g @onkernel/cli
 brew install websocat
 ```
 
+Load credentials in every local terminal that runs a `kernel` command:
+
+```bash
+cd /Users/jaiydevgupta/Projects/opensource/agentready
+set -a
+source .env
+set +a
+```
+
 Create a Kernel browser:
 
 ```bash
 kernel browsers create --timeout 600 --output json
 ```
+
+Save the returned `session_id` and live-view URL. The live view is the remote browser screen where the demo should be shown.
 
 Keep reverse tunnels open in separate terminals:
 
@@ -129,29 +140,50 @@ kernel browsers ssh <session_id> -R 5173:localhost:5173
 kernel browsers ssh <session_id> -R 8000:localhost:8000
 ```
 
-Then run the app using:
+If the browser already exists, configure the backend to attach to that browser instead of creating another one:
+
+```bash
+KERNEL_EXISTING_BROWSER_SESSION_ID=<session_id>
+KERNEL_EXISTING_BROWSER_LIVE_VIEW_URL=<optional_live_view_url>
+```
+
+Run the backend using the same session id:
 
 ```bash
 AGENTREADY_BROWSER_ENV=kernel \
 AGENTREADY_KERNEL_LOCAL_STOREFRONT_URL=http://localhost:5173 \
+KERNEL_EXISTING_BROWSER_SESSION_ID=<session_id> \
 AGENTREADY_HARNESS_MODE=scripted \
 AGENTREADY_COMPUTER_CLIENT=tzafon \
 BACKEND_BASE_URL=http://localhost:8000 \
 FRONTEND_BASE_URL=http://localhost:5173 \
-uv run --project backend uvicorn app.main:app --host 127.0.0.1 --port 8000
+uv run --project backend uvicorn app.main:app --host 0.0.0.0 --port 8000
 ```
 
 In another terminal:
 
 ```bash
 VITE_BACKEND_BASE_URL=http://localhost:8000 \
-npm run dev --prefix frontend -- --host 127.0.0.1 --port 5173
+npm run dev --prefix frontend -- --host 0.0.0.0 --port 5173
 ```
 
 Open the Kernel live view and visit:
 
 ```text
 http://localhost:5173/
+```
+
+From the `root@kernel-vm` shell, verify both tunnels before debugging the app:
+
+```bash
+curl -I http://localhost:5173
+curl http://localhost:8000/api/runtime
+```
+
+Expected backend runtime includes:
+
+```json
+{"computer_client_mode":"tzafon","browser_environment":"kernel"}
 ```
 
 Required env:
@@ -161,6 +193,13 @@ KERNEL_API_KEY
 TZAFON_API_KEY
 AGENTREADY_BROWSER_ENV=kernel
 AGENTREADY_KERNEL_LOCAL_STOREFRONT_URL=http://localhost:5173
+```
+
+If the user already created a Kernel browser manually, attach to it instead of creating a new browser:
+
+```bash
+KERNEL_EXISTING_BROWSER_SESSION_ID=<session_id>
+KERNEL_EXISTING_BROWSER_LIVE_VIEW_URL=<optional_live_view_url>
 ```
 
 Note: Kernel cloud browsers cannot directly access your laptop's `127.0.0.1`; the SSH reverse tunnel makes the VM's `localhost:5173` point to your local Vite server.

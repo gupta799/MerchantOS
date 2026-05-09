@@ -74,7 +74,17 @@ class KernelBrowserChannel:
         if self._browser_session is not None:
             return self._browser_session
         target_url = kernel_target_url(self._settings, session_id)
-        browser_session = await self._driver.create_session(target_url)
+        if (
+            self._settings.kernel_existing_browser_session_id is not None
+            and self._settings.kernel_existing_browser_session_id.strip() != ""
+        ):
+            browser_session = await self._driver.connect_session(
+                self._settings.kernel_existing_browser_session_id.strip(),
+                target_url,
+                self._settings.kernel_existing_browser_live_view_url,
+            )
+        else:
+            browser_session = await self._driver.create_session(target_url)
         self._simulation_service.attach_browser_session(
             self._simulation_id,
             browser_session.session_id,
