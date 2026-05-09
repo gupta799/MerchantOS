@@ -396,7 +396,7 @@ export function MerchantHomePage(): ReactElement {
         <nav className="shop-nav" aria-label="Lab navigation">
           <a href="#telemetry">Agent telemetry</a>
           <a href="#testbed">RidgeRun test site</a>
-          <a href="#mcp">MCP readiness</a>
+          <a href="#telemetry" onClick={() => setTelemetryOpen(true)}>MCP readiness</a>
         </nav>
         <div className="header-actions">
           <a href="#testbed">View environment</a>
@@ -503,6 +503,21 @@ export function MerchantHomePage(): ReactElement {
         <p className="telemetry-console-summary">
           {simulation?.report.summary ?? "Start a CUA run to stream observations, actions, and verification events."}
         </p>
+        <section className="console-mcp-panel" aria-label="MCP readiness recommendations">
+          <div className="console-subhead">
+            <span>MCP readiness</span>
+            <strong>{mcpReadiness?.recommendations.length ?? 0} recommendations</strong>
+          </div>
+          <div className="console-mcp-list">
+            {(mcpReadiness?.recommendations ?? []).map((recommendation) => (
+              <article key={recommendation.name}>
+                <span>{recommendation.kind}</span>
+                <strong>{recommendation.name}</strong>
+                <p>{recommendation.description}</p>
+              </article>
+            ))}
+          </div>
+        </section>
         <div className="analysis-actions">
           <select
             className="analysis-select"
@@ -642,23 +657,6 @@ export function MerchantHomePage(): ReactElement {
         )}
       </section>
 
-      <section id="mcp" className="mcp-panel">
-        <div className="section-heading">
-          <p className="eyebrow">MCP readiness</p>
-          <h2>Agent interface recommendations</h2>
-        </div>
-        <div className="mcp-grid">
-          {(mcpReadiness?.recommendations ?? []).map((recommendation) => (
-            <article className="mcp-card" key={recommendation.name}>
-              <div>
-                <span>{recommendation.kind}</span>
-                <h3>{recommendation.name}</h3>
-              </div>
-              <p>{recommendation.description}</p>
-            </article>
-          ))}
-        </div>
-      </section>
     </main>
   );
 }

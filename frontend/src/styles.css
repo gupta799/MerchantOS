@@ -267,7 +267,6 @@ button {
 
 .readiness-card span,
 .metric-card span,
-.mcp-card span,
 .status-strip span:first-child {
   color: #5c6f5f;
   font-size: 12px;
@@ -283,8 +282,7 @@ button {
 
 .readiness-card p,
 .metric-card p,
-.lab-panel p,
-.mcp-card p {
+.lab-panel p {
   color: #585852;
   line-height: 1.5;
 }
@@ -298,8 +296,7 @@ button {
 }
 
 .lab-panel,
-.metric-card,
-.mcp-card {
+.metric-card {
   display: grid;
   gap: 10px;
   align-content: start;
@@ -512,6 +509,76 @@ button {
   line-height: 1.45;
 }
 
+.console-mcp-panel {
+  display: grid;
+  gap: 10px;
+  border: 1px solid #e1e1dc;
+  border-radius: 14px;
+  padding: 12px;
+  background: #fbfbf8;
+}
+
+.console-subhead {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.console-subhead span {
+  color: #686861;
+  font-size: 11px;
+  font-weight: 750;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.console-subhead strong {
+  color: #111;
+  font-size: 12px;
+}
+
+.console-mcp-list {
+  display: grid;
+  gap: 8px;
+}
+
+.console-mcp-list article {
+  display: grid;
+  grid-template-columns: 74px minmax(0, 1fr);
+  gap: 4px 10px;
+  border-top: 1px solid #e7e7e1;
+  padding-top: 9px;
+}
+
+.console-mcp-list article:first-child {
+  border-top: 0;
+  padding-top: 0;
+}
+
+.console-mcp-list article > span {
+  grid-row: span 2;
+  color: #77776f;
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.console-mcp-list strong {
+  min-width: 0;
+  color: #111;
+  font-size: 14px;
+  word-break: break-word;
+}
+
+.console-mcp-list p {
+  margin: 0;
+  color: #5a5a54;
+  font-size: 12px;
+  line-height: 1.4;
+}
+
 .analysis-actions {
   display: grid;
   grid-template-columns: minmax(0, 1fr) auto auto;
@@ -597,9 +664,7 @@ button {
   background: #fafaf7;
 }
 
-.simulation-workspace,
-.mcp-panel,
-.dashboard-trace-shell {
+.simulation-workspace {
   padding: clamp(34px, 5vw, 54px);
   border-top: 1px solid #dedbd1;
 }
@@ -881,14 +946,6 @@ button {
   font-weight: 750;
 }
 
-.dashboard-trace-shell {
-  background: #f7fafc;
-}
-
-.dashboard-trace-shell .trace-panel {
-  margin-top: 18px;
-}
-
 .agent-cua-pointer,
 .agent-cua-pulse {
   position: fixed;
@@ -1006,53 +1063,6 @@ button {
   font-size: 13px;
   font-weight: 800;
   text-transform: capitalize;
-}
-
-.mcp-panel {
-  background: #111;
-  color: #f7f7f2;
-  padding-top: clamp(56px, 8vw, 92px);
-  padding-bottom: clamp(56px, 8vw, 92px);
-}
-
-.mcp-grid {
-  display: grid;
-  grid-template-columns: 1fr;
-  gap: 0;
-  margin-top: 18px;
-  border-top: 1px solid rgba(255, 255, 255, 0.16);
-}
-
-.mcp-panel .section-heading h2 {
-  max-width: 760px;
-  font-size: clamp(30px, 5vw, 56px);
-  line-height: 0.98;
-}
-
-.mcp-panel .eyebrow {
-  color: #ff8a4c;
-}
-
-.mcp-card {
-  grid-template-columns: minmax(180px, 0.32fr) minmax(0, 1fr);
-  align-items: start;
-  border: 0;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.16);
-  border-radius: 0;
-  padding: 18px 0;
-  background: transparent;
-  color: inherit;
-}
-
-.mcp-card h3 {
-  margin: 0;
-  font-size: 20px;
-}
-
-.mcp-card p {
-  margin: 0;
-  color: rgba(247, 247, 242, 0.72);
-  line-height: 1.5;
 }
 
 .merchant-hero {
@@ -2040,7 +2050,6 @@ button {
   .collection-grid,
   .storefront-product-grid,
   .lab-grid,
-  .mcp-grid,
   .policy-strip,
   .store-metrics {
     grid-template-columns: 1fr;
