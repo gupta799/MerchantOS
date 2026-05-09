@@ -45,16 +45,25 @@ class GuideService:
 
     async def run_guided_session(self, session_id: SessionId) -> GuideStatus:
         self._session_service.set_status(session_id, SessionStatus.GUIDING)
+        await self._channel.send_assistant_update(
+            session_id,
+            "Gemma-powered DeepAgents harness is inspecting merchant context and choosing the visual task.",
+        )
         plan = await self._harness.plan_visual_guidance(session_id)
         await self._channel.send_assistant_update(
             session_id,
-            plan.assistant_message,
+            f"{plan.assistant_message} Gemma selected this browser goal: {plan.goal}",
         )
         observation = await self._channel.request_observation(session_id)
         self._trace_service.record_observation(session_id, observation)
+        await self._channel.send_assistant_update(
+            session_id,
+            "Sending the live storefront observation to the computer-use action model.",
+        )
         turn = await self._computer_service.start(
             ComputerStartRequest(goal=plan.goal, observation=observation)
         )
+        await self._channel.send_assistant_update(session_id, turn.message)
         final_status = await self._complete_turns(session_id, turn, plan)
         if final_status == GuideStatus.DONE:
             self._session_service.set_status(session_id, SessionStatus.COMPLETED)

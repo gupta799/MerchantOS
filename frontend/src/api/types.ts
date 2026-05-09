@@ -180,6 +180,19 @@ export type TraceEntry = {
     status: string;
     message: string;
   };
+  harness?: {
+    phase: string;
+    provider: string;
+    model: string;
+    message: string;
+    prompt_text: string | null;
+    raw_output_text: string | null;
+    product_id: string | null;
+    variant_id: string | null;
+    goal: string | null;
+    assistant_message: string | null;
+    relationship_prompt: RelationshipPrompt | null;
+  } | null;
   action?: {
     type: string;
     reason: string;

@@ -39,15 +39,23 @@ async def test_tzafon_client_posts_harness_task_and_returns_typed_click() -> Non
     captured_payloads: list[dict[str, object]] = []
 
     def handler(request: httpx.Request) -> httpx.Response:
-        assert request.url == "https://mock.tzafon.test/agent/tasks/stream"
+        assert request.url == "https://mock.tzafon.test/v1/responses"
         assert request.headers["Authorization"] == "Bearer tz-test"
         captured = json.loads(request.content.decode("utf-8"))
         assert isinstance(captured, dict)
         captured_payloads.append(captured)
         return httpx.Response(
             200,
-            content=b'data: {"event":"accepted"}\n\n',
-            headers={"content-type": "text/event-stream"},
+            json={
+                "id": "resp_1",
+                "output": [
+                    {
+                        "type": "computer_call",
+                        "call_id": "call_1",
+                        "action": {"type": "click", "x": 500, "y": 400, "button": "left"},
+                    }
+                ],
+            },
         )
 
     client = TzafonComputerClient(settings(), transport=httpx.MockTransport(handler))
@@ -58,34 +66,49 @@ async def test_tzafon_client_posts_harness_task_and_returns_typed_click() -> Non
         )
     )
 
-    assert captured_payloads[0]["agent_type"] == "harness"
-    assert captured_payloads[0]["stream_delta"] is True
-    assert captured_payloads[0]["mode"] == "tzafon.northstar-cua-fast-1.6"
-    assert "StormRunner GTX" in str(captured_payloads[0]["instruction"])
+    assert captured_payloads[0]["model"] == "tzafon.northstar-cua-fast-1.6"
+    assert captured_payloads[0]["tools"] == [
+        {"type": "computer_use", "display_width": 1000, "display_height": 1000, "environment": "browser"}
+    ]
+    assert "StormRunner GTX" in str(captured_payloads[0]["input"])
+    assert "previous_response_id" not in captured_payloads[0]
     assert turn.actions[0].type == ComputerActionType.CLICK
+    assert turn.actions[0].x == 400
+    assert turn.actions[0].y == 240
     assert "Tzafon Northstar" in turn.actions[0].reason
 
 
 async def test_tzafon_client_continues_until_cart_is_present() -> None:
+    captured_payloads: list[dict[str, object]] = []
+
     def handler(request: httpx.Request) -> httpx.Response:
-        return httpx.Response(200, content=b'data: {"event":"accepted"}\n\n')
+        captured = json.loads(request.content.decode("utf-8"))
+        assert isinstance(captured, dict)
+        captured_payloads.append(captured)
+        return httpx.Response(
+            200,
+            json={
+                "id": "resp_2",
+                "output": [
+                    {
+                        "type": "message",
+                        "content": [{"text": "The observed page now satisfies the visual goal."}],
+                    }
+                ],
+            },
+        )
 
     client = TzafonComputerClient(settings(), transport=httpx.MockTransport(handler))
-    second = await client.continue_turn(
+    done = await client.continue_turn(
         ComputerContinueRequest(
             previous_response_id=ComputerResponseId("tzafon_response_1"),
             call_id=ComputerCallId("tzafon_call_1"),
             observation=observation(selected=True),
         )
     )
-    done = await client.continue_turn(
-        ComputerContinueRequest(
-            previous_response_id=second.response_id,
-            call_id=ComputerCallId("tzafon_call_2"),
-            observation=observation(selected=True, cart_count=1),
-        )
-    )
 
-    assert second.actions[0].reason == "Tzafon Northstar added the recommended product to cart"
+    assert captured_payloads[0]["previous_response_id"] == "tzafon_response_1"
+    assert captured_payloads[0]["input"][0]["type"] == "computer_call_output"
+    assert captured_payloads[0]["input"][0]["call_id"] == "tzafon_call_1"
     assert done.completed is True
     assert len(done.actions) == 0

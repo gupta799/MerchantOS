@@ -37,15 +37,15 @@ export function collectDomSummary(root: HTMLElement): BrowserDomSummary {
 }
 
 export async function observeBrowser(root: HTMLElement): Promise<BrowserObservation> {
+  const rect = root.getBoundingClientRect();
   return {
     url: window.location.href,
     screenshot: await captureScreenshot(root),
     viewport: {
-      width: window.innerWidth,
-      height: window.innerHeight,
+      width: Math.max(1, Math.round(rect.width)),
+      height: Math.max(1, Math.round(rect.height)),
       device_scale_factor: window.devicePixelRatio
     },
     dom_summary: collectDomSummary(root)
   };
 }
-

@@ -9,6 +9,7 @@ from app.models import (
     ActionVerification,
     BrowserObservation,
     ComputerAction,
+    HarnessTrace,
     TraceEntry,
     TraceResponse,
     VerificationStatus,
@@ -59,6 +60,24 @@ class TraceService:
         self._append_telemetry_snapshot(entry)
         return entry
 
+    def record_harness_trace(
+        self,
+        session_id: SessionId,
+        harness: HarnessTrace,
+        status: VerificationStatus,
+        message: str,
+    ) -> TraceEntry:
+        entry = self._store.add_trace(
+            TraceEntry(
+                trace_id=new_trace_id(),
+                session_id=session_id,
+                harness=harness,
+                verification=ActionVerification(status=status, message=message),
+            )
+        )
+        self._append_telemetry_snapshot(entry)
+        return entry
+
     def response(self, session_id: SessionId) -> TraceResponse:
         return TraceResponse(session_id=session_id, entries=self._store.traces_for_session(session_id))
 
@@ -88,4 +107,3 @@ class TraceService:
         if telemetry_dir == "":
             return None
         return Path(telemetry_dir)
-

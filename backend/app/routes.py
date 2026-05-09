@@ -72,7 +72,7 @@ def _guide_service() -> GuideService:
     cart_service = _cart_service()
     return GuideService(
         channel=session_channel,
-        harness=build_merchant_harness(settings, session_service, cart_service),
+        harness=build_merchant_harness(settings, session_service, cart_service, _trace_service()),
         computer_service=ComputerService(settings),
         policy=merchant_policy,
         session_service=session_service,
