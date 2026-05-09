@@ -6,8 +6,12 @@ import type {
   RuntimeResponse,
   SessionResponse,
   SimulationCreateRequest,
+  SimulationListResponse,
   SimulationRun,
   SimulationTelemetryResponse,
+  TelemetrySummaryAllResponse,
+  TelemetrySummaryRequest,
+  TelemetrySummaryResponse,
   TraceResponse
 } from "./types";
 
@@ -55,6 +59,14 @@ export async function createSimulation(request: SimulationCreateRequest): Promis
     throw new Error("Failed to create simulation");
   }
   return (await response.json()) as SimulationRun;
+}
+
+export async function listSimulations(): Promise<SimulationListResponse> {
+  const response = await fetch(`${backendBaseUrl()}/api/simulations`);
+  if (!response.ok) {
+    throw new Error("Failed to load simulations");
+  }
+  return (await response.json()) as SimulationListResponse;
 }
 
 export async function getSimulation(simulationId: string): Promise<SimulationRun> {
@@ -107,4 +119,27 @@ export async function getTrace(sessionId: string): Promise<TraceResponse> {
     throw new Error("Failed to load trace");
   }
   return (await response.json()) as TraceResponse;
+}
+
+export async function summarizeTelemetry(request: TelemetrySummaryRequest): Promise<TelemetrySummaryResponse> {
+  const response = await fetch(`${backendBaseUrl()}/api/summarize`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(request)
+  });
+  if (!response.ok) {
+    throw new Error("Failed to summarize telemetry");
+  }
+  return (await response.json()) as TelemetrySummaryResponse;
+}
+
+export async function summarizeAllTelemetry(): Promise<TelemetrySummaryAllResponse> {
+  const response = await fetch(`${backendBaseUrl()}/api/summarize-all`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" }
+  });
+  if (!response.ok) {
+    throw new Error("Failed to summarize all telemetry");
+  }
+  return (await response.json()) as TelemetrySummaryAllResponse;
 }

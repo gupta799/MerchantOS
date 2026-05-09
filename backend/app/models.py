@@ -354,6 +354,10 @@ class SimulationRun(BaseModel):
     updated_at: datetime = Field(default_factory=utc_now)
 
 
+class SimulationListResponse(BaseModel):
+    simulations: list[SimulationRun]
+
+
 class SimulationTelemetryResponse(BaseModel):
     simulation_id: SimulationId
     metrics: list[TelemetryMetric]
@@ -377,6 +381,30 @@ class McpReadinessRecommendation(BaseModel):
 class McpReadinessResponse(BaseModel):
     simulation_id: SimulationId
     recommendations: list[McpReadinessRecommendation]
+
+
+class TelemetryExportBundle(BaseModel):
+    simulation: SimulationRun
+    session: MerchantSession
+    trace: TraceResponse
+    telemetry: SimulationTelemetryResponse
+    report: AgentReadinessReport
+
+
+class TelemetrySummaryRequest(BaseModel):
+    simulation_id: SimulationId
+
+
+class TelemetrySummaryResponse(BaseModel):
+    simulation_id: SimulationId
+    model: str
+    markdown: str
+
+
+class TelemetrySummaryAllResponse(BaseModel):
+    simulation_ids: list[SimulationId]
+    model: str
+    markdown: str
 
 
 class CustomerMessageRequest(BaseModel):

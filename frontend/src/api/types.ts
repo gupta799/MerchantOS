@@ -86,6 +86,10 @@ export type SimulationRun = {
   updated_at: string;
 };
 
+export type SimulationListResponse = {
+  simulations: SimulationRun[];
+};
+
 export type SimulationTelemetryResponse = {
   simulation_id: string;
   metrics: TelemetryMetric[];
@@ -212,4 +216,20 @@ export type RuntimeResponse = {
   computer_model: string;
   browser_environment: BrowserEnvironment;
   demo_mode: boolean;
+};
+
+export type TelemetrySummaryRequest = {
+  simulation_id: string;
+};
+
+export type TelemetrySummaryResponse = {
+  simulation_id: string;
+  model: string;
+  markdown: string;
+};
+
+export type TelemetrySummaryAllResponse = {
+  simulation_ids: string[];
+  model: string;
+  markdown: string;
 };

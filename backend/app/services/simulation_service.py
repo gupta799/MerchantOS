@@ -12,10 +12,12 @@ from app.models import (
     McpRecommendationKind,
     SessionStatus,
     SimulationCreateRequest,
+    SimulationListResponse,
     SimulationRun,
     SimulationScenario,
     SimulationStatus,
     SimulationTelemetryResponse,
+    TelemetryExportBundle,
     TraceEntry,
     TraceResponse,
 )
@@ -72,6 +74,11 @@ class SimulationService:
         report = self._build_report(simulation_id, existing.session_id)
         updated = existing.model_copy(update={"status": status, "report": report})
         return self._store.update_simulation(updated)
+
+    def list_simulations(self) -> SimulationListResponse:
+        simulations = [self.get_simulation(simulation.simulation_id) for simulation in self._store.list_simulations()]
+        simulations.sort(key=lambda simulation: simulation.created_at, reverse=True)
+        return SimulationListResponse(simulations=simulations)
 
     def mark_running(self, simulation_id: SimulationId) -> SimulationRun:
         existing = self._store.get_simulation(simulation_id)
@@ -149,6 +156,26 @@ class SimulationService:
                     schema_preview_json='{"type":"object","properties":{"product_id":{"type":"string"},"variant_id":{"type":"string"},"quantity":{"type":"integer","minimum":1}},"required":["product_id","variant_id"]}',
                 ),
             ],
+        )
+
+    def export_bundle(self, simulation_id: SimulationId) -> TelemetryExportBundle:
+        simulation = self.get_simulation(simulation_id)
+        session = self._store.get_session(simulation.session_id)
+        trace = TraceResponse(
+            session_id=simulation.session_id,
+            entries=self._store.traces_for_session(simulation.session_id),
+        )
+        telemetry = SimulationTelemetryResponse(
+            simulation_id=simulation_id,
+            metrics=simulation.report.metrics,
+            failures=simulation.report.failures,
+        )
+        return TelemetryExportBundle(
+            simulation=simulation,
+            session=session,
+            trace=trace,
+            telemetry=telemetry,
+            report=simulation.report,
         )
 
     def _scenario_for(self, scenario_id: str) -> SimulationScenario:

@@ -8,7 +8,10 @@ import {
   getSimulation,
   getSimulationTelemetry,
   getSimulationTrace,
-  postCustomerMessage
+  listSimulations,
+  postCustomerMessage,
+  summarizeAllTelemetry,
+  summarizeTelemetry
 } from "../api/http";
 import type {
   Cart,
@@ -65,7 +68,9 @@ export function MerchantHomePage(): ReactElement {
   const createdRef = useRef(false);
   const runRequestedRef = useRef(false);
   const startedSessionRef = useRef("");
+  const analysisTimerRef = useRef<number | null>(null);
   const [simulation, setSimulation] = useState<SimulationRun | null>(null);
+  const [simulationOptions, setSimulationOptions] = useState<SimulationRun[]>([]);
   const [session, setSession] = useState<SessionResponse | null>(null);
   const [runtime, setRuntime] = useState<RuntimeResponse | null>(null);
   const [cart, setCart] = useState<Cart | null>(null);
@@ -75,18 +80,25 @@ export function MerchantHomePage(): ReactElement {
   const [mcpReadiness, setMcpReadiness] = useState<McpReadinessResponse | null>(null);
   const [statusMessage, setStatusMessage] = useState("Preparing automated computer-use simulation...");
   const [rerunning, setRerunning] = useState(false);
+  const [telemetryOpen, setTelemetryOpen] = useState(true);
+  const [analysisMarkdown, setAnalysisMarkdown] = useState("");
+  const [analysisStatus, setAnalysisStatus] = useState<string | null>(null);
+  const [analysisStreaming, setAnalysisStreaming] = useState(false);
+  const [analysisTarget, setAnalysisTarget] = useState("current");
 
   async function refreshSimulation(simulationId: string): Promise<void> {
-    const [nextSimulation, nextTrace, nextTelemetry, nextMcp] = await Promise.all([
+    const [nextSimulation, nextTrace, nextTelemetry, nextMcp, nextList] = await Promise.all([
       getSimulation(simulationId),
       getSimulationTrace(simulationId),
       getSimulationTelemetry(simulationId),
-      getMcpReadiness(simulationId)
+      getMcpReadiness(simulationId),
+      listSimulations().catch(() => ({ simulations: [] }))
     ]);
     setSimulation(nextSimulation);
     setTraceEntries(nextTrace.entries);
     setTelemetry(nextTelemetry);
     setMcpReadiness(nextMcp);
+    setSimulationOptions(nextList.simulations);
     const nextSession = await getSession(nextSimulation.session_id);
     setSession(nextSession);
     setCart(nextSession.cart);
@@ -102,13 +114,16 @@ export function MerchantHomePage(): ReactElement {
     setTraceEntries([]);
     setTelemetry(null);
     setMcpReadiness(null);
+    setAnalysisMarkdown("");
+    setAnalysisStatus(null);
     setStatusMessage(shouldStartRun ? "Creating automated CUA simulation run..." : "Preparing RidgeRun test storefront...");
     const nextSimulation = await createSimulation(simulationRequest);
-    const [nextRuntime, nextSession, nextTelemetry, nextMcp] = await Promise.all([
+    const [nextRuntime, nextSession, nextTelemetry, nextMcp, nextList] = await Promise.all([
       getRuntime().catch(() => null),
       getSession(nextSimulation.session_id),
       getSimulationTelemetry(nextSimulation.simulation_id),
-      getMcpReadiness(nextSimulation.simulation_id)
+      getMcpReadiness(nextSimulation.simulation_id),
+      listSimulations().catch(() => ({ simulations: [] }))
     ]);
     setRuntime(nextRuntime);
     setSimulation(nextSimulation);
@@ -116,6 +131,8 @@ export function MerchantHomePage(): ReactElement {
     setCart(nextSession.cart);
     setTelemetry(nextTelemetry);
     setMcpReadiness(nextMcp);
+    setSimulationOptions(nextList.simulations);
+    setAnalysisTarget("current");
     setSelectedVariantId(nextSession.recommended_products[0]?.variant_id ?? null);
     const browserEnvironment = nextRuntime?.browser_environment ?? nextSimulation.browser_environment;
     setStatusMessage(
@@ -137,6 +154,7 @@ export function MerchantHomePage(): ReactElement {
       return;
     }
     startedSessionRef.current = sessionId;
+    setTelemetryOpen(true);
     focusSimulationWorkspace();
     setStatusMessage("Autonomous CUA agent is observing the storefront and choosing actions...");
     await emitMerchantEvent(sessionId, {
@@ -192,6 +210,14 @@ export function MerchantHomePage(): ReactElement {
   }, []);
 
   useEffect(() => {
+    return () => {
+      if (analysisTimerRef.current !== null) {
+        window.clearInterval(analysisTimerRef.current);
+      }
+    };
+  }, []);
+
+  useEffect(() => {
     if (
       testbedRef.current === null ||
       session === null ||
@@ -242,6 +268,118 @@ export function MerchantHomePage(): ReactElement {
     }
     setCart(addCartItem(cart, session.products, productId, variantId));
   }
+
+  function renderInlineMarkdown(text: string): ReactElement[] {
+    const tokens = text.split(/(\*\*[^*]+\*\*)/g).filter((token) => token.length > 0);
+    return tokens.map((token, index) => {
+      if (token.startsWith("**") && token.endsWith("**")) {
+        return <strong key={`strong-${index}`}>{token.slice(2, -2)}</strong>;
+      }
+      return <span key={`text-${index}`}>{token}</span>;
+    });
+  }
+
+  function renderMarkdown(markdown: string): ReactElement {
+    const lines = markdown.split("\n");
+    const elements: ReactElement[] = [];
+    let listItems: string[] = [];
+
+    const flushList = (): void => {
+      if (listItems.length === 0) {
+        return;
+      }
+      elements.push(
+        <ul key={`list-${elements.length}`}>
+          {listItems.map((item, index) => (
+            <li key={`item-${index}`}>{renderInlineMarkdown(item)}</li>
+          ))}
+        </ul>
+      );
+      listItems = [];
+    };
+
+    lines.forEach((line) => {
+      if (line.startsWith("- ")) {
+        listItems.push(line.slice(2));
+        return;
+      }
+      flushList();
+      if (line.startsWith("## ")) {
+        elements.push(<h3 key={`h3-${elements.length}`}>{renderInlineMarkdown(line.slice(3))}</h3>);
+        return;
+      }
+      if (line.startsWith("# ")) {
+        elements.push(<h2 key={`h2-${elements.length}`}>{renderInlineMarkdown(line.slice(2))}</h2>);
+        return;
+      }
+      if (line.trim() === "") {
+        elements.push(<div className="analysis-spacer" key={`spacer-${elements.length}`} />);
+        return;
+      }
+      elements.push(<p key={`p-${elements.length}`}>{renderInlineMarkdown(line)}</p>);
+    });
+
+    flushList();
+    return <div className="analysis-output">{elements}</div>;
+  }
+
+  function streamAnalysis(markdown: string, intervalMs: number): void {
+    if (analysisTimerRef.current !== null) {
+      window.clearInterval(analysisTimerRef.current);
+    }
+    const lines = markdown.split("\n");
+    let index = 0;
+    setAnalysisMarkdown("");
+    setAnalysisStreaming(true);
+    analysisTimerRef.current = window.setInterval(() => {
+      setAnalysisMarkdown((previous) => {
+        const nextLine = lines[index];
+        const prefix = previous.length === 0 ? "" : "\n";
+        return `${previous}${prefix}${nextLine}`;
+      });
+      index += 1;
+      if (index >= lines.length) {
+        if (analysisTimerRef.current !== null) {
+          window.clearInterval(analysisTimerRef.current);
+        }
+        analysisTimerRef.current = null;
+        setAnalysisStreaming(false);
+        setAnalysisStatus(null);
+      }
+    }, intervalMs);
+  }
+
+  async function analyzeTelemetry(): Promise<void> {
+    const targetId = analysisTarget === "current" ? simulation?.simulation_id : analysisTarget;
+    if (targetId === undefined) {
+      return;
+    }
+    setTelemetryOpen(true);
+    setAnalysisStatus("Summarizing this simulation...");
+    try {
+      const summary = await summarizeTelemetry({ simulation_id: targetId });
+      streamAnalysis(summary.markdown, 42);
+    } catch {
+      setAnalysisStreaming(false);
+      setAnalysisStatus("Telemetry analysis failed. Try rerunning the simulation.");
+    }
+  }
+
+  async function analyzeAllTelemetry(): Promise<void> {
+    setTelemetryOpen(true);
+    setAnalysisStatus("Summarizing all simulations...");
+    try {
+      const summary = await summarizeAllTelemetry();
+      streamAnalysis(summary.markdown, 34);
+    } catch {
+      setAnalysisStreaming(false);
+      setAnalysisStatus("All-runs summary failed. Try again.");
+    }
+  }
+
+  const actionTraceCount = traceEntries.filter((entry) => entry.action !== null && entry.action !== undefined).length;
+  const failureCount = telemetry?.failures.filter((failure) => failure !== "task_completed").length ?? 0;
+  const readinessScore = simulation?.report.readiness_score ?? 0;
 
   return (
     <main className="home-page lab-page">
@@ -318,22 +456,94 @@ export function MerchantHomePage(): ReactElement {
             <span>Status: {simulation?.status ?? "connecting"}</span>
             <span>{statusMessage}</span>
           </div>
+          <button className="telemetry-inline-action" type="button" onClick={() => setTelemetryOpen(true)}>
+            Open telemetry console
+          </button>
         </article>
       </section>
 
-      <section className="dashboard-trace-shell" aria-label="MerchantOS computer-use telemetry trace">
-        <div className="section-heading">
-          <p className="eyebrow">MerchantOS dashboard</p>
-          <h2>Computer-use trace and verification log</h2>
+      <button
+        className={telemetryOpen ? "telemetry-fab hidden" : "telemetry-fab"}
+        type="button"
+        onClick={() => setTelemetryOpen(true)}
+        aria-expanded={telemetryOpen}
+      >
+        Telemetry
+        <span>{traceEntries.length}</span>
+      </button>
+
+      <aside className={telemetryOpen ? "telemetry-console open" : "telemetry-console"} aria-label="MerchantOS telemetry console">
+        <header className="telemetry-console-header">
+          <div>
+            <p className="eyebrow">MerchantOS telemetry</p>
+            <h2>Run intelligence</h2>
+          </div>
+          <button type="button" onClick={() => setTelemetryOpen(false)} aria-label="Close telemetry console">
+            Close
+          </button>
+        </header>
+        <div className="telemetry-console-grid">
+          <div>
+            <span>Readiness</span>
+            <strong>{readinessScore}</strong>
+          </div>
+          <div>
+            <span>Traces</span>
+            <strong>{traceEntries.length}</strong>
+          </div>
+          <div>
+            <span>Actions</span>
+            <strong>{actionTraceCount}</strong>
+          </div>
+          <div>
+            <span>Risks</span>
+            <strong>{failureCount}</strong>
+          </div>
         </div>
-        <TracePanel entries={traceEntries} />
-      </section>
+        <p className="telemetry-console-summary">
+          {simulation?.report.summary ?? "Start a CUA run to stream observations, actions, and verification events."}
+        </p>
+        <div className="analysis-actions">
+          <select
+            className="analysis-select"
+            value={analysisTarget}
+            onChange={(event) => setAnalysisTarget(event.target.value)}
+            disabled={analysisStreaming}
+          >
+            <option value="current">Current run</option>
+            {simulationOptions.map((option) => (
+              <option key={option.simulation_id} value={option.simulation_id}>
+                {option.simulation_id} · {option.status}
+              </option>
+            ))}
+          </select>
+          <button
+            type="button"
+            className="primary-action"
+            onClick={() => void analyzeTelemetry()}
+            disabled={analysisStreaming || (analysisTarget === "current" && simulation === null)}
+          >
+            {analysisStreaming ? "Analyzing..." : "Analyze"}
+          </button>
+          <button type="button" className="secondary-action" onClick={() => void analyzeAllTelemetry()} disabled={analysisStreaming}>
+            All runs
+          </button>
+        </div>
+        {analysisStatus !== null ? <p className="analysis-status">{analysisStatus}</p> : null}
+        {analysisMarkdown.length > 0 ? renderMarkdown(analysisMarkdown) : (
+          <p className="analysis-placeholder">Use the summary controls to generate a concise telemetry readout.</p>
+        )}
+        <div className="telemetry-trace-card">
+          <TracePanel entries={traceEntries} />
+        </div>
+      </aside>
 
       <section id="testbed" className="simulation-workspace">
         <div className="section-heading environment-heading">
           <div>
             <p className="eyebrow">Embedded test environment</p>
-            <h2>RidgeRun running inside MerchantOS</h2>
+            <h2>RidgeRun environment</h2>
+            <p className="environment-copy">Running inside MerchantOS as an isolated browser viewport.</p>
           </div>
           <span>isolated browser viewport</span>
         </div>
